@@ -1,5 +1,5 @@
 from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from enum import Enum
 
@@ -15,9 +15,9 @@ class Run:
     started_at: datetime
     ended_at: datetime | None = None
 
-    params: dict[str, Any]
-    metrics: dict[str, float]
-    tags: dict[str, str]
+    params: dict[str, Any] = field(default_factory=dict)
+    metrics: dict[str, float] = field(default_factory=dict)
+    tags: dict[str, str] = field(default_factory=dict)
 
 
 class RunType(Enum):
