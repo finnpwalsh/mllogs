@@ -7,12 +7,12 @@ from enum import Enum
 @dataclass
 class Run:
     id: str
-    name: str
-
-    run_type: RunType
-    status: RunStatus
+    name: str | None = None
+    run_type: str | None =  None
 
     started_at: datetime
+
+    status: RunStatus
     ended_at: datetime | None = None
 
     params: dict[str, Any] = field(default_factory=dict)
@@ -20,12 +20,6 @@ class Run:
     tags: dict[str, str] = field(default_factory=dict)
 
     artifacts: list[Artifact] | None = None
-
-
-class RunType(Enum):
-    TRAIN = "train"
-    EVAL = "eval"
-    INFERENCE = "inference"
 
 
 class RunStatus(Enum):
