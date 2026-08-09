@@ -19,6 +19,8 @@ class Run:
     metrics: dict[str, float] = field(default_factory=dict)
     tags: dict[str, str] = field(default_factory=dict)
 
+    artifacts: list[Artifact] | None = None
+
 
 class RunType(Enum):
     TRAIN = "train"
@@ -30,3 +32,9 @@ class RunStatus(Enum):
     RUNNING = "running"
     COMPLETE = "complete"
     FAILED = "failed"
+
+
+class Artifact:
+    name: str
+    uri: str
+    artifact_type: str
