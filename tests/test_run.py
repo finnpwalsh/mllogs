@@ -7,7 +7,6 @@ def test_create_run():
     run = Run(
         id="run-123",
         name="baseline",
-        run_type=RunType.TRAIN,
         status=RunStatus.RUNNING,
         started_at=datetime.now(UTC),
     )
