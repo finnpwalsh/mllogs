@@ -22,7 +22,8 @@ class MLLogsClient:
             run_type: Optional type used to categorize the run.
         """
         # generate run id
-        timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
+        started_at = datetime.now(UTC)
+        timestamp = started_at.strftime("%Y%m%d%H%M%S")
         random_suffix = uuid4().hex[:8]
         run_id = f"{timestamp}-{random_suffix}"
 
@@ -31,7 +32,7 @@ class MLLogsClient:
             name=name,
             run_type=run_type,
             status = RunStatus.RUNNING,
-            started_at=timestamp,
+            started_at=started_at,
         )
         # END
 
@@ -49,8 +50,7 @@ class MLLogsClient:
 
 
     def end_run(self) -> None:
-        timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
-        self._active_run.ended_at = timestamp
+        self._active_run.ended_at = datetime.now(UTC)
 
         self._active_run.status = RunStatus.COMPLETE
 
