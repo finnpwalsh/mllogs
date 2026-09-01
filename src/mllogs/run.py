@@ -21,6 +21,25 @@ class Run:
     artifacts: list[Artifact] | None = None
 
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "started_at": self.started_at.isoformat(),
+            "status": self.status.value,
+            "name": self.name,
+            "run_type": self.run_type,
+            "ended_at": (
+                self.ended_at.isoformat()
+                if self.ended_at is not None
+                else None
+            ),
+            "params": self.params,
+            "metrics": self.metrics,
+            "tags": self.tags,
+            "artifacts": self.artifacts,
+        }
+
+
 class RunStatus(Enum):
     RUNNING = "running"
     COMPLETE = "complete"
