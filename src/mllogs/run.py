@@ -7,12 +7,11 @@ from enum import Enum
 @dataclass
 class Run:
     id: str
+    started_at: datetime
+    status: RunStatus
+
     name: str | None = None
     run_type: str | None =  None
-
-    started_at: datetime
-
-    status: RunStatus
     ended_at: datetime | None = None
 
     params: dict[str, Any] = field(default_factory=dict)
