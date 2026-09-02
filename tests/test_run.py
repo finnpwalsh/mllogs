@@ -38,5 +38,5 @@ def test_to_dict():
         "params": {},
         "metrics": {},
         "tags": {},
-        "artifacts": None,
+        "artifacts": [],
     }
