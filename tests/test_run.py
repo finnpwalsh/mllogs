@@ -55,7 +55,7 @@ def test_from_dict():
     assert run.status == RunStatus.RUNNING
 
 
-def test_round_trip():
+def test_serialization_round_trip():
     started_at = datetime(2000, 1, 1, 0, 0, tzinfo=UTC)
 
     before = Run(
