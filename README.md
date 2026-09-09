@@ -4,7 +4,9 @@ Local experiment logging for machine learning.
 
 ## Installation
 
-`pip install -e .`
+```bash
+pip install mllogs
+```
 
 ## Usage
 
@@ -34,4 +36,18 @@ client.end_run()
 
 ## Development
 
-- Run test suite with `pytest`
+Install from source with development dependencies:
+
+```bash
+pip install -e ".[dev]"
+```
+
+Run the test suite:
+
+```bash
+pytest
+```
+
+## License
+
+MIT
