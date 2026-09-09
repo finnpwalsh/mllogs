@@ -7,9 +7,14 @@ where = ["src"]
 
 [project]
 name = "mllogs"
-version = "0.1.2"
+version = "0.1.3"
 description = "Local experiment logging for machine learning"
+readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    { name = "Finn Walsh" }
+]
 dependencies = []
 
 [project.optional-dependencies]
