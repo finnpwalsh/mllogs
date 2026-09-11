@@ -37,10 +37,14 @@ def test_end_run(tmp_path: Path) -> None:
     client.start_run()
     run = client.end_run()
 
+    # assert run is ended
     assert client._active_run is None
+
+    # assert ended run is complete
     assert run.status == RunStatus.COMPLETE
     assert run.ended_at is not None
 
+    # assert ended run is persisted to storage
     assert (tmp_path / "runs" / f"{run.id}.json").is_file()
 
 

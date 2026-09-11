@@ -52,6 +52,12 @@ class MLLogsClient:
 
 
     def end_run(self) -> Run:
+        """
+        End the active run. Clears the active run and persists to storage.
+
+        Returns:
+            - Active run
+        """
         if self._active_run is None:
             raise RuntimeError("No active run.")
 
