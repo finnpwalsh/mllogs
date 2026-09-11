@@ -3,11 +3,13 @@ from datetime import datetime, UTC
 from uuid import uuid4
 
 from .run import Run, RunStatus
+from .storage import LocalFileStore
 
 
 class MLLogsClient:
     def __init__(self):
         self._active_run: Run | None = None
+        self._file_store: LocalFileStore | None = None
 
     def start_run(
             self,
@@ -54,6 +56,7 @@ class MLLogsClient:
 
         self._active_run.status = RunStatus.COMPLETE
 
+        self._file_store.save_run(self._active_run)
+
         # clear run
         self._active_run = None
-        # END
