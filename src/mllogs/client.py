@@ -7,9 +7,9 @@ from .storage import LocalFileStore
 
 
 class MLLogsClient:
-    def __init__(self):
+    def __init__(self, file_store: LocalFileStore | None = None):
         self._active_run: Run | None = None
-        self._file_store: LocalFileStore | None = None
+        self._file_store = file_store if file_store is not None else LocalFileStore()
 
     def start_run(
             self,
