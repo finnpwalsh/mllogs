@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from mllogs.run import RunStatus
 from mllogs.client import MLLogsClient
+from mllogs.storage import LocalFileStore
 
 
 def test_start_run() -> None:
@@ -27,13 +30,18 @@ def test_start_run() -> None:
     assert run.ended_at is None
 
 
-def test_end_run() -> None:
-    client = MLLogsClient()
+def test_end_run(tmp_path: Path) -> None:
+    file_store = LocalFileStore(root_dir=tmp_path)
+    client = MLLogsClient(file_store=file_store)
 
     client.start_run()
-    client.end_run()
+    run = client.end_run()
 
     assert client._active_run is None
+    assert run.status == RunStatus.COMPLETE
+    assert run.ended_at is not None
+
+    assert (tmp_path / "runs" / f"{run.id}.json").is_file()
 
 
 def test_mutate_params() -> None:
