@@ -51,12 +51,18 @@ class MLLogsClient:
         self._active_run.tags[key] = value
 
 
-    def end_run(self) -> None:
-        self._active_run.ended_at = datetime.now(UTC)
+    def end_run(self) -> Run:
+        if self._active_run is None:
+            raise RuntimeError("No active run.")
 
-        self._active_run.status = RunStatus.COMPLETE
+        run = self._active_run
 
-        self._file_store.save_run(self._active_run)
+        run.ended_at = datetime.now(UTC)
+        run.status = RunStatus.COMPLETE
+
+        self._file_store.save_run(run)
 
         # clear run
         self._active_run = None
+
+        return run
