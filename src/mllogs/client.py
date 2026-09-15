@@ -31,6 +31,9 @@ class MLLogsClient:
             name: Optional name for the run.
             run_type: Optional type used to categorize the run.
         """
+        if self._active_run is not None:
+            raise RuntimeError("Active run already exists.")
+        
         # generate run id
         started_at = datetime.now(UTC)
         timestamp = started_at.strftime("%Y%m%d%H%M%S")
