@@ -13,6 +13,9 @@ def test_start_run() -> None:
         run_type="training",
     )
 
+    with pytest.raises(RuntimeError):
+        client.start_run()
+
     run = client._active_run
 
     # assert active run is generated
