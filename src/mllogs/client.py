@@ -11,6 +11,14 @@ class MLLogsClient:
         self._active_run: Run | None = None
         self._file_store = file_store if file_store is not None else LocalFileStore()
 
+
+    def _require_active_run(self) -> Run:
+        if self._active_run is None:
+            raise RuntimeError("No active run.")
+
+        return self._active_run
+
+
     def start_run(
             self,
             name: str | None = None,
@@ -40,15 +48,18 @@ class MLLogsClient:
 
 
     def log_param(self, key: str, value: Any) -> None:
-        self._active_run.params[key] = value
+        run = self._require_active_run()
+        run.params[key] = value
 
 
     def log_metric(self, key: str, value: float) -> None:
-        self._active_run.metrics[key] = value
+        run = self._require_active_run()
+        run.metrics[key] = value
 
 
     def set_tag(self, key: str, value: str) -> None:
-        self._active_run.tags[key] = value
+        run = self._require_active_run()
+        run.tags[key] = value
 
 
     def end_run(self) -> Run:
@@ -58,10 +69,7 @@ class MLLogsClient:
         Returns:
             - Active run
         """
-        if self._active_run is None:
-            raise RuntimeError("No active run.")
-
-        run = self._active_run
+        run = self._require_active_run()
 
         run.ended_at = datetime.now(UTC)
         run.status = RunStatus.COMPLETE
@@ -72,3 +80,15 @@ class MLLogsClient:
         self._active_run = None
 
         return run
+
+
+    def get_run(self, run_id: str) -> Run:
+        return self._file_store.load_run(run_id=run_id)
+
+
+    def list_runs(self, limit: int | None = None) -> list[Run]:
+        return self._file_store.list_runs(limit=limit)
+
+
+    def delete_run(self, run_id: str) -> None:
+        self._file_store.delete_run(run_id=run_id)
