@@ -25,10 +25,24 @@ class LocalFileStore:
             json.dump(run.to_dict(), f, indent=4)
 
 
-    def load_run(self, run_id: str) -> Run:
+    def load_run(self, run_id: str | None = None) -> Run | None:
         """
         Reads JSON run file from storage and returns a Run.
+
+        Args:
+            - run_id: returns latest run if no argument is passed
+
+        Returns:
+            - Run if exists else None
         """
+        if run_id is None:
+            runs = self.list_runs(limit=1)
+
+            if not runs:
+                return None
+
+            return runs[0]
+        
         path = self._runs_dir / f"{run_id}.json"
 
         with path.open("r") as f:

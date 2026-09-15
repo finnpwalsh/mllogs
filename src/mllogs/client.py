@@ -85,7 +85,7 @@ class MLLogsClient:
         return run
 
 
-    def get_run(self, run_id: str) -> Run:
+    def get_run(self, run_id: str | None = None) -> Run | None:
         return self._file_store.load_run(run_id=run_id)
 
 

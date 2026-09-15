@@ -64,3 +64,26 @@ def test_runs_with_invalid_limit(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError):
         storage.list_runs(limit=0)
+
+
+def test_load_latest_run(tmp_path: Path) -> None:
+    storage = LocalFileStore(root_dir=tmp_path)
+        
+    run1 = Run(
+        id="001",
+        status=RunStatus.RUNNING,
+        started_at=datetime.now(UTC),
+    )
+
+    run2 = Run(
+        id="002",
+        status=RunStatus.RUNNING,
+        started_at=datetime.now(UTC),
+    )
+
+    storage.save_run(run1)
+    storage.save_run(run2)
+
+    latest_run = storage.load_run()
+
+    assert latest_run == run2
