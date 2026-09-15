@@ -1,4 +1,5 @@
 from pathlib import Path
+import pytest
 
 from mllogs.run import RunStatus
 from mllogs.client import MLLogsClient
@@ -55,15 +56,29 @@ def test_mutate_params() -> None:
 
     # log param
     client.log_param("alpha", 0.1)
-    assert "alpha" in client._active_run.params.keys()
     assert client._active_run.params["alpha"] == 0.1
 
     # log metric
     client.log_metric("RMSE", 0.01)
-    assert "RMSE" in client._active_run.metrics.keys()
     assert client._active_run.metrics["RMSE"] == 0.01
 
     # set tag
     client.set_tag("ml_model", "ridge")
-    assert "ml_model" in client._active_run.tags.keys()
     assert client._active_run.tags["ml_model"] == "ridge"
+
+
+def test_ops_requiring_active_run() -> None:
+    client = MLLogsClient()
+
+    with pytest.raises(RuntimeError):
+        client.log_param("alpha", 0.1)
+
+    with pytest.raises(RuntimeError):
+        client.log_metric("RMSE", 0.01)
+
+    with pytest.raises(RuntimeError):
+        client.set_tag("model", "ridge")
+
+    with pytest.raises(RuntimeError):
+        client.end_run()
+        
