@@ -24,14 +24,23 @@ client.log_param("learning_rate", 0.01)
 client.log_metric("accuracy", 0.92)
 client.set_tag("model", "logistic_regression")
 
-client.end_run()
+run = client.end_run()
+
+client.list_runs()
+```
+
+Retrieve or delete a saved run:
+
+```python
+client.get_run(id)
+client.delete_run(id)
 ```
 
 ## Features
 
 - Start and end experiment runs
 - Log parameters, metrics, and tags
-- Save runs to local storage
+- Automatically persist completed runs to local storage
 - Load, list, and delete saved runs
 
 ## Development
