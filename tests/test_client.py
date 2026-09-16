@@ -35,8 +35,8 @@ def test_start_run() -> None:
 
 
 def test_end_run(tmp_path: Path) -> None:
-    file_store = LocalFileStore(root_dir=tmp_path)
-    client = MLLogsClient(file_store=file_store)
+    store = LocalFileStore(root_dir=tmp_path)
+    client = MLLogsClient(store=store)
 
     client.start_run()
     run = client.end_run()

@@ -3,13 +3,13 @@ from datetime import datetime, UTC
 from uuid import uuid4
 
 from .run import Run, RunStatus
-from .storage import LocalFileStore
+from .storage import Store, LocalFileStore
 
 
 class MLLogsClient:
-    def __init__(self, file_store: LocalFileStore | None = None):
+    def __init__(self, store: Store | None = None):
         self._active_run: Run | None = None
-        self._file_store = file_store if file_store is not None else LocalFileStore()
+        self._store = store if store is not None else LocalFileStore()
 
 
     def _require_active_run(self) -> Run:
@@ -77,7 +77,7 @@ class MLLogsClient:
         run.ended_at = datetime.now(UTC)
         run.status = RunStatus.COMPLETE
 
-        self._file_store.save_run(run)
+        self._store.save_run(run)
 
         # clear run
         self._active_run = None
@@ -86,12 +86,12 @@ class MLLogsClient:
 
 
     def get_run(self, run_id: str | None = None) -> Run | None:
-        return self._file_store.load_run(run_id=run_id)
+        return self._store.load_run(run_id=run_id)
 
 
     def list_runs(self, limit: int | None = None) -> list[Run]:
-        return self._file_store.list_runs(limit=limit)
+        return self._store.list_runs(limit=limit)
 
 
     def delete_run(self, run_id: str) -> None:
-        self._file_store.delete_run(run_id=run_id)
+        self._store.delete_run(run_id=run_id)

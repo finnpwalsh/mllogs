@@ -3,7 +3,12 @@ from datetime import datetime, UTC
 import pytest
 
 from mllogs.run import Run, RunStatus
-from mllogs.storage import LocalFileStore
+from mllogs.storage import Store, LocalFileStore
+
+
+def test_local_file_store_is_store(tmp_path: Path) -> None:
+    store = LocalFileStore(root_dir=tmp_path)
+    assert isinstance(store, Store)
 
 
 def test_persistence_round_trip(tmp_path: Path) -> None:
