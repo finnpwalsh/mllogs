@@ -43,7 +43,7 @@ class Run:
     run_type: str | None =  None
     ended_at: datetime | None = None
 
-    params: dict[str, Any] = field(default_factory=dict)
+    params: dict[str, str | int | float | bool] = field(default_factory=dict)
     metrics: dict[str, float] = field(default_factory=dict)
     tags: dict[str, str] = field(default_factory=dict)
     artifacts: list[Artifact] = field(default_factory=list)
