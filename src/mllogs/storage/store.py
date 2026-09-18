@@ -4,6 +4,9 @@ from mllogs.run import Run
 
 
 class Store(ABC):
+    """
+    DEPRECATED. Kept until the conversion to DB/File store split is made.
+    """
     @abstractmethod
     def save_run(self, run: Run) -> None:
         ...
