@@ -4,7 +4,8 @@ import json
 from datetime import datetime
 
 from .base import DBStore
-from mllogs.run import Run, RunStatus, Artifact
+from mllogs.run import Run, RunStatus
+from mllogs.artifact import Artifact
 
 
 class SQLiteStore(DBStore):
@@ -67,15 +68,15 @@ class SQLiteStore(DBStore):
             );
 
             CREATE TABLE IF NOT EXISTS artifacts (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 run_id          TEXT NOT NULL,
                 name            TEXT NOT NULL,
-                uri             TEXT NOT NULL,
-                artifact_type   TEXT,
+                artifact_type   TEXT NOT NULL,
+                format          TEXT NOT NULL,
 
+                PRIMARY KEY (run_id, name, format),
                 FOREIGN KEY (run_id)
-                REFERENCES runs(id)
-                ON DELETE CASCADE
+                    REFERENCES runs(id)
+                    ON DELETE CASCADE
             );
             """     
         )
@@ -143,8 +144,8 @@ class SQLiteStore(DBStore):
                 INSERT INTO artifacts (
                     run_id,
                     name,
-                    uri,
-                    artifact_type
+                    artifact_type,
+                    format
                 )
                 VALUES (?, ?, ?, ?)
                 """,
@@ -152,8 +153,8 @@ class SQLiteStore(DBStore):
                     (
                         run.id,
                         artifact.name,
-                        artifact.uri,
                         artifact.artifact_type,
+                        artifact.format,
                     )
                     for artifact in run.artifacts
                 ]
@@ -227,8 +228,8 @@ class SQLiteStore(DBStore):
             artifacts=[
                 Artifact(
                     name=row["name"],
-                    uri=row["uri"],
                     artifact_type=row["artifact_type"],
+                    format=row["format"],
                 )
                 for row in artifact_rows
             ],
@@ -270,5 +271,5 @@ class SQLiteStore(DBStore):
             )
 
         if cursor.rowcount == 0:
-            raise KeyError(f"Run not found: run_id")
+            raise KeyError(f"Run not found: {run_id}")
     
