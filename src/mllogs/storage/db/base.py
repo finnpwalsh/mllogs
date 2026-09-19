@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from mllogs.run import Run
+from mllogs.artifact import Artifact
 
 
 class DBStore(ABC):
@@ -18,4 +19,20 @@ class DBStore(ABC):
 
     @abstractmethod
     def delete_run(self, run_id: str) -> None:
+        ...
+
+    @abstractmethod
+    def save_artifact(
+        self,
+        run_id: str,
+        artifact: Artifact,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def delete_artifact(
+        self,
+        run_id: str,
+        artifact: Artifact,
+    ) -> None:
         ...

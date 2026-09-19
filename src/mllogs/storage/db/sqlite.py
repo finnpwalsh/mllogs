@@ -139,27 +139,6 @@ class SQLiteStore(DBStore):
                 ],
             )
 
-            self._connection.executemany(
-                """
-                INSERT INTO artifacts (
-                    run_id,
-                    name,
-                    artifact_type,
-                    format
-                )
-                VALUES (?, ?, ?, ?)
-                """,
-                [
-                    (
-                        run.id,
-                        artifact.name,
-                        artifact.artifact_type,
-                        artifact.format,
-                    )
-                    for artifact in run.artifacts
-                ]
-            )
-
 
     def load_run(self, run_id: str | None = None) -> Run | None:
         if run_id is None:
@@ -236,7 +215,6 @@ class SQLiteStore(DBStore):
         )
 
 
-
     def list_runs(self, limit: int | None = None) -> list[Run]:
         if limit is not None and limit <= 0:
             raise ValueError("limit must be greater than 0")
@@ -263,6 +241,7 @@ class SQLiteStore(DBStore):
             for row in rows
         ]
 
+
     def delete_run(self, run_id: str) -> None:
         with self._connection:
             cursor = self._connection.execute(
@@ -272,4 +251,54 @@ class SQLiteStore(DBStore):
 
         if cursor.rowcount == 0:
             raise KeyError(f"Run not found: {run_id}")
-    
+
+
+    def save_artifact(
+        self,
+        run_id: str,
+        artifact: Artifact,
+    ) -> None:
+        with self._connection:
+            self._connection.executemany(
+                """
+                INSERT INTO artifacts (
+                    run_id,
+                    name,
+                    artifact_type,
+                    format
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    artifact.name,
+                    artifact.artifact_type,
+                    artifact.format,
+                ),
+            )
+
+    def delete_artifact(
+        self,
+        run_id: str,
+        artifact: Artifact,
+    ) -> None:
+        with self._connection:
+            cursor = self._connection.execute(
+                """
+                DELETE FROM artifacts
+                WHERE run_id = ?
+                    AND name = ?
+                    AND format = ?
+                """,
+                (
+                    run_id,
+                    artifact.name,
+                    artifact.format,
+                ),
+            )
+
+        if cursor.rowcount == 0:
+            raise KeyError(
+                f"Artifact not found: {artifact.name} "
+                f"({artifact.format}) for Run ID: {run_id}"
+            )
