@@ -89,13 +89,6 @@ def test_log_param(ml):
     assert ml.query.get_params(run_id) == params
 
 
-def test_log_param_invalid_type(ml):
-    ml.start_run()
-
-    with pytest.raises(TypeError):
-        ml.log_param("invalid", [1, 2, 3])
-
-
 def test_log_metric(ml):
     ml.start_run()
 

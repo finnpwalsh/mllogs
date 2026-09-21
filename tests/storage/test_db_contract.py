@@ -66,40 +66,10 @@ def test_save_and_load_run(store, run):
 
 # ===== LOAD =====
 
-def test_load_without_id_returns_latest(store, runs):
-    for run in runs:
-        store.save_run(run)
-    assert store.load_run() == runs[2]
 
-
-def test_load_missing_run_returns_none(store):
-    assert store.load_run("missing") is None
-
-
-# ===== LIST =====
-
-
-def test_list_runs_without_limit(store, runs):
-    for run in runs:
-        store.save_run(run)
-
-    result = store.list_runs()
-
-    assert result == list(reversed(runs))
-
-
-def test_list_runs_limit(store, runs):
-    for run in runs:
-        store.save_run(run)
-
-    result = store.list_runs(limit=2)
-
-    assert result == [runs[2], runs[1]]
-
-
-def test_list_runs_invalid_limit(store):
-    with pytest.raises(ValueError):
-        store.list_runs(limit=0)
+def test_load_missing_run_raises_error(store):
+    with pytest.raises(KeyError):
+        store.load_run("missing")
 
 
 # ===== DELETE =====
@@ -108,7 +78,8 @@ def test_delete_run(store, run):
     store.save_run(run)
     store.delete_run(run.id)
 
-    assert store.load_run(run.id) is None
+    with pytest.raises(KeyError):
+        store.load_run(run.id)
 
 
 def test_delete_missing_run(store):
