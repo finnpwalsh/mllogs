@@ -10,38 +10,37 @@ pip install mllogs
 
 ## Usage
 
+Track a run:
+
 ```python
-from mllogs import MLLogsClient
+from mllogs import MLLogs
 
-client = MLLogsClient()
+mll = MLLogs()
 
-client.start_run(
-    name="baseline",
-    run_type="training",
-)
+mll.start_run()
 
-client.log_param("learning_rate", 0.01)
-client.log_metric("accuracy", 0.92)
-client.set_tag("model", "logistic_regression")
+mll.log_param("learning_rate", 0.01)
+mll.log_metric("accuracy", 0.92)
+mll.set_tag("model", "logistic_regression")
 
-run = client.end_run()
-
-client.list_runs()
+run = mll.complete_run()
 ```
 
-Retrieve or delete a saved run:
+Query run data:
 
 ```python
-client.get_run(run.id)
-client.delete_run(run.id)
+mll.query.get_run(run.id)
+mll.query.get_params(run.id)
+mll.query.get_metrics(run.id)
+mll.query.get_tags(run.id)
 ```
 
 ## Features
 
-- Start and end experiment runs
+- Start, complete, and fail experiment runs
 - Log parameters, metrics, and tags
-- Persist completed runs to a local SQLite database
-- Load, list, and delete saved runs
+- Persist run data to a local SQLite database
+- Query saved runs and their logged data
 
 ## Development
 
