@@ -5,7 +5,6 @@ from datetime import datetime
 
 from .base import DBStore
 from mllogs.run import Run, RunStatus
-from mllogs.artifact import Artifact
 
 
 class SQLiteStore(DBStore):
@@ -62,18 +61,6 @@ class SQLiteStore(DBStore):
                 value           TEXT NOT NULL,
 
                 PRIMARY KEY (run_id, key),
-                FOREIGN KEY (run_id)
-                    REFERENCES runs(id)
-                    ON DELETE CASCADE
-            );
-
-            CREATE TABLE IF NOT EXISTS artifacts (
-                run_id          TEXT NOT NULL,
-                name            TEXT NOT NULL,
-                artifact_type   TEXT NOT NULL,
-                format          TEXT NOT NULL,
-
-                PRIMARY KEY (run_id, name, format),
                 FOREIGN KEY (run_id)
                     REFERENCES runs(id)
                     ON DELETE CASCADE
@@ -176,11 +163,6 @@ class SQLiteStore(DBStore):
             (run_id,),
         ).fetchall()
 
-        artifact_rows = self._connection.execute(
-            "SELECT * FROM artifacts WHERE run_id = ?",
-            (run_id,),
-        ).fetchall()
-
         return Run(
             id=run_row["id"],
             started_at=datetime.fromisoformat(run_row["started_at"]),
@@ -204,14 +186,6 @@ class SQLiteStore(DBStore):
                 row["key"]: row["value"]
                 for row in tag_rows
             },
-            artifacts=[
-                Artifact(
-                    name=row["name"],
-                    artifact_type=row["artifact_type"],
-                    format=row["format"],
-                )
-                for row in artifact_rows
-            ],
         )
 
 
@@ -251,54 +225,3 @@ class SQLiteStore(DBStore):
 
         if cursor.rowcount == 0:
             raise KeyError(f"Run not found: {run_id}")
-
-
-    def save_artifact(
-        self,
-        run_id: str,
-        artifact: Artifact,
-    ) -> None:
-        with self._connection:
-            self._connection.executemany(
-                """
-                INSERT INTO artifacts (
-                    run_id,
-                    name,
-                    artifact_type,
-                    format
-                )
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    run_id,
-                    artifact.name,
-                    artifact.artifact_type,
-                    artifact.format,
-                ),
-            )
-
-    def delete_artifact(
-        self,
-        run_id: str,
-        artifact: Artifact,
-    ) -> None:
-        with self._connection:
-            cursor = self._connection.execute(
-                """
-                DELETE FROM artifacts
-                WHERE run_id = ?
-                    AND name = ?
-                    AND format = ?
-                """,
-                (
-                    run_id,
-                    artifact.name,
-                    artifact.format,
-                ),
-            )
-
-        if cursor.rowcount == 0:
-            raise KeyError(
-                f"Artifact not found: {artifact.name} "
-                f"({artifact.format}) for Run ID: {run_id}"
-            )

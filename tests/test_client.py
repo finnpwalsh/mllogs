@@ -1,13 +1,24 @@
-from pathlib import Path
 import pytest
 
 from mllogs.run import RunStatus
 from mllogs.client import MLLogsClient
-from mllogs.storage import LocalFileStore
+from mllogs.storage import Storage
+from mllogs.storage.db import SQLiteStore
+
+# ====================
+# ----- Fixtures -----
+# ====================
 
 
-def test_start_run() -> None:
-    client = MLLogsClient()
+@pytest.fixture
+def client(tmp_path):
+    storage=Storage(
+        db=SQLiteStore(tmp_path / "mllogs.db")
+    )
+    return MLLogsClient(storage=storage)
+
+
+def test_start_run(client):
     client.start_run(
         name="run1",
         run_type="training",
@@ -34,14 +45,11 @@ def test_start_run() -> None:
     assert run.ended_at is None
 
 
-def test_end_run(tmp_path: Path) -> None:
-    store = LocalFileStore(root_dir=tmp_path)
-    client = MLLogsClient(store=store)
-
+def test_end_run(client):
     client.start_run()
     run = client.end_run()
 
-    # assert run is ended
+    # assert active run is cleared
     assert client._active_run is None
 
     # assert ended run is complete
@@ -49,12 +57,10 @@ def test_end_run(tmp_path: Path) -> None:
     assert run.ended_at is not None
 
     # assert ended run is persisted to storage
-    assert (tmp_path / "runs" / f"{run.id}.json").is_file()
+    assert client.get_run(run.id) == run
 
 
-def test_mutate_params() -> None:
-    client = MLLogsClient()
-
+def test_log_run_data(client):
     client.start_run()
 
     # log param
@@ -70,9 +76,7 @@ def test_mutate_params() -> None:
     assert client._active_run.tags["ml_model"] == "ridge"
 
 
-def test_ops_requiring_active_run() -> None:
-    client = MLLogsClient()
-
+def test_ops_requiring_active_run(client):
     with pytest.raises(RuntimeError):
         client.log_param("alpha", 0.1)
 
@@ -84,4 +88,3 @@ def test_ops_requiring_active_run() -> None:
 
     with pytest.raises(RuntimeError):
         client.end_run()
-        

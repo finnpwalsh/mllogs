@@ -6,7 +6,6 @@ from .run import Run, RunStatus
 from .storage import Storage
 
 from .storage.db import SQLiteStore
-from .storage.artifacts import LocalArtifactStore
 
 
 class MLLogsClient:
@@ -15,8 +14,7 @@ class MLLogsClient:
 
         if storage is None:
             db = SQLiteStore()
-            artifact_store = LocalArtifactStore()
-            self._storage = Storage(db=db, artifact_store=artifact_store)
+            self._storage = Storage(db=db)
         else:
             self._storage = storage
 
@@ -28,9 +26,9 @@ class MLLogsClient:
         return self._active_run
 
 
-    # ---------------------
-    # --- Run Lifecycle ---
-    # ---------------------
+    # ------------------
+    # --- Active Run ---
+    # ------------------
     
     def start_run(
             self,
@@ -80,11 +78,7 @@ class MLLogsClient:
         self._active_run = None
 
         return run
-
-
-    # ---------------
-    # --- Logging ---
-    # ---------------
+    
     
     def log_param(self, key: str, value: Any) -> None:
         run = self._require_active_run()
@@ -101,9 +95,9 @@ class MLLogsClient:
         run.tags[key] = value
 
 
-    # -----------------------
-    # --- Run persistence ---
-    # -----------------------
+    # ----------------------
+    # --- Persisted runs ---
+    # ----------------------
 
     def get_run(self, run_id: str | None = None) -> Run | None:
         return self._storage.load_run(run_id=run_id)

@@ -2,8 +2,6 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from enum import Enum
 
-from .artifact import Artifact
-
 
 class RunStatus(Enum):
     RUNNING = "running"
@@ -24,4 +22,3 @@ class Run:
     params: dict[str, str | int | float | bool] = field(default_factory=dict)
     metrics: dict[str, float] = field(default_factory=dict)
     tags: dict[str, str] = field(default_factory=dict)
-    artifacts: list[Artifact] = field(default_factory=list)
