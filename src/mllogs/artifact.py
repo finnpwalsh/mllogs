@@ -15,3 +15,7 @@ class Artifact:
     name: str
     artifact_type: str
     format: str
+
+    @property
+    def filename(self) -> str:
+        return f"{self.name}.{self.format}"
