@@ -27,11 +27,7 @@ def run():
         id="run-123",
         started_at=datetime.now(UTC),
         status=RunStatus.COMPLETE,
-        name="baseline",
-        run_type="training",
-        params={"learning_rate": 0.01, "epochs": 10},
-        metrics={"accuracy": 0.95},
-        tags={"model": "baseline"},
+        ended_at=datetime.now(UTC),
     )
 
 
