@@ -1,4 +1,4 @@
-from mllogs import MLLogsClient
+from mllogs import MLLogs
 
 def test_public_import() -> None:
-    assert MLLogsClient is not None
+    assert MLLogs is not None
