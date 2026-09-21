@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, UTC
+from uuid import uuid4
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -14,11 +15,17 @@ class Run:
     id: str
     started_at: datetime
     status: RunStatus
-
-    name: str | None = None
-    run_type: str | None =  None
     ended_at: datetime | None = None
 
-    params: dict[str, str | int | float | bool] = field(default_factory=dict)
-    metrics: dict[str, float] = field(default_factory=dict)
-    tags: dict[str, str] = field(default_factory=dict)
+    @classmethod
+    def create(cls) -> "Run":
+        started_at = datetime.now(UTC)
+
+        timestamp = started_at.strftime("%Y%m%d%H%M%S")
+        run_id = f"{timestamp}-{uuid4().hex[:8]}"
+
+        return cls(
+            id=run_id,
+            started_at=started_at,
+            status=RunStatus.RUNNING,
+        )

@@ -18,46 +18,59 @@ def client(tmp_path):
     return MLLogsClient(storage=storage)
 
 
+# =================
+# --- Start run ---
+# =================
+
 def test_start_run(client):
-    client.start_run(
-        name="run1",
-        run_type="training",
-    )
+    client.start_run()
+
+    run = client._active_run
+
+    assert run is not None
+    assert run.status == RunStatus.RUNNING
+    assert run.ended_at is None
+
+    assert client.get_run(run.id) == run
+
+
+def test_start_run_with_active_run(client):
+    client.start_run()
 
     with pytest.raises(RuntimeError):
         client.start_run()
 
-    run = client._active_run
 
-    # assert active run is generated
-    assert run is not None
-
-    # assert necessary fields are generated / populated
-    assert run.started_at is not None
-    assert run.id is not None
-    assert run.status == RunStatus.RUNNING
-
-    # assert passed parameters populate designated fields
-    assert run.name == "run1"
-    assert run.run_type == "training"
-
-    # assert no additional fields are populated
-    assert run.ended_at is None
+# ==================
+# --- Finish run ---
+# ==================
 
 
-def test_end_run(client):
+def test_complete_run(client):
     client.start_run()
-    run = client.end_run()
+    run = client.complete_run()
 
-    # assert active run is cleared
     assert client._active_run is None
-
-    # assert ended run is complete
     assert run.status == RunStatus.COMPLETE
     assert run.ended_at is not None
 
-    # assert ended run is persisted to storage
     assert client.get_run(run.id) == run
+
+
+def test_fail_run(client):
+    client.start_run()
+    run = client.fail_run()
+
+    assert client._active_run is None
+    assert run.status == RunStatus.FAILED
+    assert run.ended_at is not None
+
+    assert client.get_run(run.id) == run
+
+
+# ================
+# --- Log data ---
+# ================
 
 
 def test_log_run_data(client):
