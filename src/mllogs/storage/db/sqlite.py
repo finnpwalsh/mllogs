@@ -5,6 +5,7 @@ from datetime import datetime
 
 from .base import DBStore
 from mllogs.run import Run, RunStatus
+from mllogs.types import ParamValue
 
 
 class SQLiteStore(DBStore):
@@ -27,8 +28,6 @@ class SQLiteStore(DBStore):
                 id          TEXT PRIMARY KEY,
                 started_at  TEXT NOT NULL,
                 status      TEXT NOT NULL,
-                name        TEXT,
-                run_type    TEXT,
                 ended_at    TEXT
             );
 
@@ -68,6 +67,18 @@ class SQLiteStore(DBStore):
             """     
         )
 
+    def _require_run(self, run_id: str) -> None:
+        row = self._connection.execute(
+            "SELECT 1 FROM runs WHERE id = ?",
+            (run_id,),
+        ).fetchone()
+
+        if row is None:
+            raise KeyError(f"Run not found: {run_id}")
+
+    # =================
+    # ----- Write -----
+    # =================
 
     def save_run(self, run: Run) -> None:
         with self._connection:
@@ -77,151 +88,204 @@ class SQLiteStore(DBStore):
                     id,
                     started_at,
                     status,
-                    name,
-                    run_type,
                     ended_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?)
                 """,
                 (
                     run.id,
                     run.started_at.isoformat(),
                     run.status.value,
-                    run.name,
-                    run.run_type,
                     run.ended_at.isoformat() if run.ended_at else None,
                 ),
             )
 
-            self._connection.executemany(
+
+    def update_run(self, run: Run) -> None:
+        with self._connection:
+            cursor = self._connection.execute(
                 """
-                INSERT INTO params (run_id, key, value)
-                VALUES (?, ?, ?)
+                UPDATE runs
+                SET
+                    status = ?,
+                    ended_at = ?
+                WHERE id = ?
                 """,
-                [
-                    (run.id, key, json.dumps(value))
-                    for key, value in run.params.items()
-                ],
+                (
+                    run.status.value,
+                    run.ended_at.isoformat() if run.ended_at else None,
+                    run.id,
+                ),
             )
 
-            self._connection.executemany(
+            if cursor.rowcount == 0:
+                raise KeyError(f"Run not found: {run.id}")
+
+
+    def save_param(
+        self,
+        run_id: str,
+        key: str,
+        value: ParamValue,
+    ) -> None:
+        with self._connection:
+            self._connection.execute(
                 """
-                INSERT INTO metrics (run_id, key, value)
+                INSERT INTO params (
+                    run_id,
+                    key,
+                    value
+                )
                 VALUES (?, ?, ?)
                 """,
-                [
-                    (run.id, key, value)
-                    for key, value in run.metrics.items()
-                ],
+                (
+                    run_id,
+                    key,
+                    json.dumps(value),
+                ),
             )
 
-            self._connection.executemany(
+
+    def save_metric(
+        self,
+        run_id: str,
+        key: str,
+        value: float,
+    ) -> None:
+        with self._connection:
+            self._connection.execute(
                 """
-                INSERT INTO tags (run_id, key, value)
+                INSERT INTO metrics (
+                    run_id,
+                    key,
+                    value
+                )
                 VALUES (?, ?, ?)
                 """,
-                [
-                    (run.id, key, str(value))
-                    for key, value in run.tags.items()
-                ],
+                (
+                    run_id,
+                    key,
+                    value,
+                ),
             )
 
+    def save_tag(
+        self,
+        run_id: str,
+        key: str,
+        value: str,
+    ) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO tags (
+                    run_id,
+                    key,
+                    value
+                )
+                VALUES (?, ?, ?)
+                """,
+                (
+                    run_id,
+                    key,
+                    value,
+                ),
+            )
 
-    def load_run(self, run_id: str | None = None) -> Run | None:
-        if run_id is None:
-            run_row = self._connection.execute(
-                """
-                SELECT *
-                FROM runs
-                ORDER BY started_at DESC
-                LIMIT 1
-                """
-            ).fetchone()
-        else:
-            run_row = self._connection.execute(
-                "SELECT * FROM runs WHERE id = ?",
-                (run_id,),
-            ).fetchone()
+    # ================
+    # ----- Read -----
+    # ================
+
+    def load_run(self, run_id: str) -> Run:
+        run_row = self._connection.execute(
+            "SELECT * FROM runs WHERE id = ?",
+            (run_id,),
+        ).fetchone()
 
         if run_row is None:
-            return None
-
-        run_id = run_row["id"]
-        
-        param_rows = self._connection.execute(
-            "SELECT key, value FROM params WHERE run_id = ?",
-            (run_id,),
-        ).fetchall()
-
-        metric_rows = self._connection.execute(
-            "SELECT key, value FROM metrics WHERE run_id = ?",
-            (run_id,),
-        ).fetchall()
-
-        tag_rows = self._connection.execute(
-            "SELECT key, value FROM tags WHERE run_id = ?",
-            (run_id,),
-        ).fetchall()
+            raise KeyError(f"Run not found: {run_id}")
 
         return Run(
             id=run_row["id"],
             started_at=datetime.fromisoformat(run_row["started_at"]),
             status=RunStatus(run_row["status"]),
-            name=run_row["name"],
-            run_type=run_row["run_type"],
             ended_at=(
                 datetime.fromisoformat(run_row["ended_at"])
                 if run_row["ended_at"]
                 else None
             ),
-            params={
-                row["key"]: json.loads(row["value"])
-                for row in param_rows
-            },
-            metrics={
-                row["key"]: row["value"]
-                for row in metric_rows
-            },
-            tags={
-                row["key"]: row["value"]
-                for row in tag_rows
-            },
         )
 
 
-    def list_runs(self, limit: int | None = None) -> list[Run]:
-        if limit is not None and limit <= 0:
-            raise ValueError("limit must be greater than 0")
-
-        query = """
-            SELECT id
-            FROM runs
-            ORDER BY started_at DESC
-        """
-
-        params = ()
-
-        if limit is not None:
-            query += " LIMIT ?"
-            params = (limit, )
+    def load_params(self, run_id: str) -> dict[str, ParamValue]:
+        self._require_run(run_id)
 
         rows = self._connection.execute(
-            query,
-            params,
+
+            """
+            SELECT key, value
+            FROM params
+            WHERE run_id = ?
+            """,
+            (run_id,),
         ).fetchall()
 
-        return [
-            self.load_run(row["id"])
+        return {
+            row["key"]: json.loads(row["value"])
             for row in rows
-        ]
+        }
 
+
+    def load_metrics(self, run_id: str) -> dict[str, float]:
+        self._require_run(run_id)
+
+        rows = self._connection.execute(
+
+            """
+            SELECT key, value
+            FROM metrics
+            WHERE run_id = ?
+            """,
+            (run_id,),
+        ).fetchall()
+
+        return {
+            row["key"]: row["value"]
+            for row in rows
+        }
+
+
+    def load_tags(self, run_id: str) -> dict[str, str]:
+        self._require_run(run_id)
+        
+        rows = self._connection.execute(
+
+            """
+            SELECT key, value
+            FROM tags
+            WHERE run_id = ?
+            """,
+            (run_id,),
+        ).fetchall()
+
+        return {
+            row["key"]: row["value"]
+            for row in rows
+        }
+
+    # ==================
+    # ----- Delete -----
+    # ==================
 
     def delete_run(self, run_id: str) -> None:
         with self._connection:
             cursor = self._connection.execute(
-                "DELETE FROM runs WHERE id = ?",
+                """
+                DELETE FROM runs
+                WHERE id = ?
+                """,
                 (run_id,),
             )
 
-        if cursor.rowcount == 0:
-            raise KeyError(f"Run not found: {run_id}")
+            if cursor.rowcount == 0:
+                raise KeyError(f"Run not found: {run_id}")
