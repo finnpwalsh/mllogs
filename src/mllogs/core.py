@@ -1,21 +1,18 @@
-from typing import Any
 from datetime import datetime, UTC
 
 from .run import Run, RunStatus
-from .storage import Storage
+from .types import ParamValue
+from .query import Query
 
-from .storage.db import SQLiteStore
+from .storage.db import DBStore, SQLiteStore
 
 
-class MLLogsClient:
-    def __init__(self, storage: Storage | None = None):
+class MLLogs:
+    def __init__(self, db_store: DBStore | None = None):
         self._active_run: Run | None = None
+        self._db_store = db_store or SQLiteStore()
 
-        if storage is None:
-            db = SQLiteStore()
-            self._storage = Storage(db=db)
-        else:
-            self._storage = storage
+        self.query = Query(self._db_store)
 
 
     def _require_active_run(self) -> Run:
@@ -24,10 +21,6 @@ class MLLogsClient:
 
         return self._active_run
 
-
-    # =============
-    # --- TRACK ---
-    # =============
     
     def start_run(self) -> None:
         """
@@ -38,7 +31,7 @@ class MLLogsClient:
         
         run = Run.create()
 
-        self._storage.save_run(run)
+        self._db_store.save_run(run)
         self._active_run = run
 
 
@@ -51,7 +44,7 @@ class MLLogsClient:
         run.ended_at = datetime.now(UTC)
         run.status = RunStatus.COMPLETE
 
-        self._storage.update_run(run)
+        self._db_store.update_run(run)
         self._active_run = None
 
         return run
@@ -66,34 +59,34 @@ class MLLogsClient:
         run.ended_at = datetime.now(UTC)
         run.status = RunStatus.FAILED
 
-        self._storage.update_run(run)
+        self._db_store.update_run(run)
         self._active_run = None
 
         return run
-    
-    
-    def log_param(self, key: str, value: Any) -> None:
+
+
+    def log_param(self, key: str, value: ParamValue) -> None:
         run = self._require_active_run()
-        run.params[key] = value
+        self._db_store.save_param(
+            run_id=run.id,
+            key=key,
+            value=value,
+        )
 
 
     def log_metric(self, key: str, value: float) -> None:
         run = self._require_active_run()
-        run.metrics[key] = value
+        self._db_store.save_metric(
+            run_id=run.id,
+            key=key,
+            value=value,
+        )
 
 
-    def set_tag(self, key: str, value: str) -> None:
+    def log_tag(self, key: str, value: str) -> None:
         run = self._require_active_run()
-        run.tags[key] = value
-
-
-    # =============
-    # --- Query ---
-    # =============
-
-    def get_run(self, run_id: str | None = None) -> Run | None:
-        return self._storage.load_run(run_id=run_id)
-
-
-    def list_runs(self, limit: int | None = None) -> list[Run]:
-        return self._storage.list_runs(limit=limit)
+        self._db_store.save_tag(
+            run_id=run.id,
+            key=key,
+            value=value,
+        )
