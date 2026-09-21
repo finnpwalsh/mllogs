@@ -15,6 +15,11 @@ class MLLogs:
         self.query = Query(self._db_store)
 
 
+    @property
+    def active_run(self) -> Run:
+        return self._active_run
+
+
     def _require_active_run(self) -> Run:
         if self._active_run is None:
             raise RuntimeError("No active run.")
@@ -83,7 +88,7 @@ class MLLogs:
         )
 
 
-    def log_tag(self, key: str, value: str) -> None:
+    def set_tag(self, key: str, value: str) -> None:
         run = self._require_active_run()
         self._db_store.save_tag(
             run_id=run.id,
