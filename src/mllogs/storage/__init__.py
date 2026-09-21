@@ -1,7 +1,5 @@
-from .store import Store
-from .local_file_store import LocalFileStore
+from .storage import Storage
 
 __all__ = [
-    "Store",
-    "LocalFileStore",
+    "Storage",
 ]
