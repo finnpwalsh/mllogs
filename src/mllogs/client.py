@@ -3,13 +3,22 @@ from datetime import datetime, UTC
 from uuid import uuid4
 
 from .run import Run, RunStatus
-from .storage import Store, LocalFileStore
+from .storage import Storage
+
+from .storage.db import SQLiteStore
+from .storage.artifacts import LocalArtifactStore
 
 
 class MLLogsClient:
-    def __init__(self, store: Store | None = None):
+    def __init__(self, storage: Storage | None = None):
         self._active_run: Run | None = None
-        self._store = store if store is not None else LocalFileStore()
+
+        if storage is None:
+            db = SQLiteStore()
+            artifact_store = LocalArtifactStore()
+            self._storage = Storage(db=db, artifact_store=artifact_store)
+        else:
+            self._storage = storage
 
 
     def _require_active_run(self) -> Run:
@@ -19,6 +28,10 @@ class MLLogsClient:
         return self._active_run
 
 
+    # ---------------------
+    # --- Run Lifecycle ---
+    # ---------------------
+    
     def start_run(
             self,
             name: str | None = None,
@@ -47,9 +60,32 @@ class MLLogsClient:
             status = RunStatus.RUNNING,
             started_at=started_at,
         )
-        # END
 
 
+    def end_run(self) -> Run:
+        """
+        End the active run. Clears the active run and persists to storage.
+
+        Returns:
+            - Active run
+        """
+        run = self._require_active_run()
+
+        run.ended_at = datetime.now(UTC)
+        run.status = RunStatus.COMPLETE
+
+        self._storage.save_run(run)
+
+        # clear run
+        self._active_run = None
+
+        return run
+
+
+    # ---------------
+    # --- Logging ---
+    # ---------------
+    
     def log_param(self, key: str, value: Any) -> None:
         run = self._require_active_run()
         run.params[key] = value
@@ -65,33 +101,17 @@ class MLLogsClient:
         run.tags[key] = value
 
 
-    def end_run(self) -> Run:
-        """
-        End the active run. Clears the active run and persists to storage.
-
-        Returns:
-            - Active run
-        """
-        run = self._require_active_run()
-
-        run.ended_at = datetime.now(UTC)
-        run.status = RunStatus.COMPLETE
-
-        self._store.save_run(run)
-
-        # clear run
-        self._active_run = None
-
-        return run
-
+    # -----------------------
+    # --- Run persistence ---
+    # -----------------------
 
     def get_run(self, run_id: str | None = None) -> Run | None:
-        return self._store.load_run(run_id=run_id)
+        return self._storage.load_run(run_id=run_id)
 
 
     def list_runs(self, limit: int | None = None) -> list[Run]:
-        return self._store.list_runs(limit=limit)
+        return self._storage.list_runs(limit=limit)
 
 
     def delete_run(self, run_id: str) -> None:
-        self._store.delete_run(run_id=run_id)
+        self._storage.delete_run(run_id=run_id)
