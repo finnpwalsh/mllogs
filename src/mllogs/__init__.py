@@ -1,3 +1,3 @@
-from .client import MLLogsClient
+from .core import MLLogs
 
-__all__ = ["MLLogsClient"]
+__all__ = ["MLLogs"]
