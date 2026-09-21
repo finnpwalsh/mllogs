@@ -32,15 +32,15 @@ client.list_runs()
 Retrieve or delete a saved run:
 
 ```python
-client.get_run(id)
-client.delete_run(id)
+client.get_run(run.id)
+client.delete_run(run.id)
 ```
 
 ## Features
 
 - Start and end experiment runs
 - Log parameters, metrics, and tags
-- Automatically persist completed runs to local storage
+- Persist completed runs to a local SQLite database
 - Load, list, and delete saved runs
 
 ## Development
