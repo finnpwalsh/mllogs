@@ -17,13 +17,13 @@ from mllogs import MLLogs
 
 mll = MLLogs()
 
-mll.start_run()
+mll.tracker.start_run()
 
-mll.log_param("learning_rate", 0.01)
-mll.log_metric("accuracy", 0.92)
-mll.set_tag("model", "logistic_regression")
+mll.tracker.log_param("learning_rate", 0.01)
+mll.tracker.log_metric("accuracy", 0.92)
+mll.tracker.set_tag("model", "logistic_regression")
 
-run = mll.complete_run()
+run = mll.tracker.complete_run()
 ```
 
 Query run data:
