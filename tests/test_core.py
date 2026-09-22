@@ -14,6 +14,14 @@ def mll(tmp_path):
     return MLLogs(db_store)
 
 
+# ===============
+# --- Backend ---
+# ===============
+
+def test_query_tracker_have_same_db(mll):
+    assert mll.tracker._db_store == mll.query._db_store
+
+
 # =================
 # --- Start run ---
 # =================
@@ -29,7 +37,6 @@ def test_start_run_persists_run(mll):
 # ==================
 # --- Finish run ---
 # ==================
-
 
 def test_complete_run_round_trip(mll):
     mll.tracker.start_run()
@@ -48,7 +55,6 @@ def test_fail_run_round_trip(mll):
 # ================
 # --- Log data ---
 # ================
-
 
 def test_param_round_trip(mll):
     mll.tracker.start_run()
