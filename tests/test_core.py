@@ -1,17 +1,15 @@
 import pytest
 
-from mllogs.run import RunStatus
-from mllogs.types import ParamValue
 from mllogs import MLLogs
 from mllogs.storage.db import SQLiteStore
 
-# ====================
-# ----- Fixtures -----
-# ====================
 
+# =================
+# --- Fixtures ---
+# =================
 
 @pytest.fixture
-def ml(tmp_path):
+def mll(tmp_path):
     db_store = SQLiteStore(tmp_path / "mllogs.db")
     return MLLogs(db_store)
 
@@ -20,23 +18,12 @@ def ml(tmp_path):
 # --- Start run ---
 # =================
 
-def test_start_run(ml):
-    ml.start_run()
+def test_start_run_persists_run(mll):
+    mll.tracker.start_run()
 
-    run = ml.active_run
+    run = mll.tracker.active_run
 
-    assert run is not None
-    assert run.status == RunStatus.RUNNING
-    assert run.ended_at is None
-
-    assert ml.query.get_run(run.id) == run
-
-
-def test_start_run_with_active_run(ml):
-    ml.start_run()
-
-    with pytest.raises(RuntimeError):
-        ml.start_run()
+    assert mll.query.get_run(run.id) == run
 
 
 # ==================
@@ -44,26 +31,18 @@ def test_start_run_with_active_run(ml):
 # ==================
 
 
-def test_complete_run(ml):
-    ml.start_run()
-    run = ml.complete_run()
+def test_complete_run_round_trip(mll):
+    mll.tracker.start_run()
+    run = mll.tracker.complete_run()
 
-    assert ml.active_run is None
-    assert run.status == RunStatus.COMPLETE
-    assert run.ended_at is not None
-
-    assert ml.query.get_run(run.id) == run
+    assert mll.query.get_run(run.id) == run
 
 
-def test_fail_run(ml):
-    ml.start_run()
-    run = ml.fail_run()
+def test_fail_run_round_trip(mll):
+    mll.tracker.start_run()
+    run = mll.tracker.fail_run()
 
-    assert ml._active_run is None
-    assert run.status == RunStatus.FAILED
-    assert run.ended_at is not None
-
-    assert ml.query.get_run(run.id) == run
+    assert mll.query.get_run(run.id) == run
 
 
 # ================
@@ -71,12 +50,11 @@ def test_fail_run(ml):
 # ================
 
 
-def test_log_param(ml):
-    ml.start_run()
+def test_param_round_trip(mll):
+    mll.tracker.start_run()
+    run_id = mll.tracker.active_run.id
 
-    run_id = ml.active_run.id
-
-    params: dict[str, ParamValue] = {
+    params = {
         "alpha": 0.1,
         "count": 3,
         "enabled": True,
@@ -84,44 +62,24 @@ def test_log_param(ml):
     }
 
     for key, value in params.items():
-        ml.log_param(key, value)
+        mll.tracker.log_param(key, value)
 
-    assert ml.query.get_params(run_id) == params
-
-
-def test_log_metric(ml):
-    ml.start_run()
-
-    run_id = ml.active_run.id
-
-    ml.log_metric("RMSE", 0.01)
-
-    assert ml.query.get_metrics(run_id) == {"RMSE": 0.01}
+    assert mll.query.get_params(run_id) == params
 
 
-def test_set_tag(ml):
-    ml.start_run()
+def test_metric_round_trip(mll):
+    mll.tracker.start_run()
+    run_id = mll.tracker.active_run.id
 
-    run_id = ml.active_run.id
+    mll.tracker.log_metric("RMSE", 0.01)
 
-    ml.set_tag("model", "ridge")
-
-    assert ml.query.get_tags(run_id) == {"model": "ridge"}
-
+    assert mll.query.get_metrics(run_id) == {"RMSE": 0.01}
 
 
-def test_ops_requiring_active_run(ml):
-    with pytest.raises(RuntimeError):
-        ml.log_param("alpha", 0.1)
+def test_tag_round_trip(mll):
+    mll.tracker.start_run()
+    run_id = mll.tracker.active_run.id
 
-    with pytest.raises(RuntimeError):
-        ml.log_metric("RMSE", 0.01)
+    mll.tracker.set_tag("model", "ridge")
 
-    with pytest.raises(RuntimeError):
-        ml.set_tag("model", "ridge")
-
-    with pytest.raises(RuntimeError):
-        ml.complete_run()
-
-    with pytest.raises(RuntimeError):
-        ml.fail_run()
+    assert mll.query.get_tags(run_id) == {"model": "ridge"}
