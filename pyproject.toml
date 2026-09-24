@@ -15,7 +15,12 @@ license = "MIT"
 authors = [
     { name = "Finn Walsh" }
 ]
-dependencies = []
+dependencies = [
+    "pandas",
+    "joblib",
+    "pyarrow",
+    "numpy",
+]
 
 [project.optional-dependencies]
 dev = [
