@@ -7,7 +7,7 @@ from .pickle import PickleSerializer
 from .numpy import NumpySerializer
 
 
-SERIALIZERS: dict[str, Serializer] = {
+_SERIALIZERS: dict[str, Serializer] = {
     "csv": CSVSerializer(),
     "joblib": JoblibSerializer(),
     "json": JSONSerializer(),
@@ -19,10 +19,10 @@ SERIALIZERS: dict[str, Serializer] = {
 
 def get_serializer(format: str) -> Serializer:
     try:
-        return SERIALIZERS[format]
+        return _SERIALIZERS[format]
     except KeyError:
         raise ValueError(f"Unsupported serializer format: {format}")
 
 
 def list_serializers() -> list[str]:
-    return list(SERIALIZERS)
+    return list(_SERIALIZERS)
