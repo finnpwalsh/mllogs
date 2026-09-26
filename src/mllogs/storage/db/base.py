@@ -5,82 +5,46 @@ from mllogs.types import ParamValue
 
 
 class DBStore(ABC):
-    # =================
-    # ----- Write -----
-    # =================
-
-    # --- Runs ----
-
-    @abstractmethod
-    def save_run(self, run: Run) -> None:
-        ...
-
-    @abstractmethod
-    def update_run(self, run: Run) -> None:
-        ...
-
-    @abstractmethod
-    def delete_run(self, run_id: str) -> None:
-        ...
-
-    # --- Params ---
-
-    @abstractmethod
-    def save_param(
-        self,
-        run_id: str,
-        key: str,
-        value: ParamValue,
-    ) -> None:
-        ...
-
-    # --- Metrics ---
-
-    @abstractmethod
-    def save_metric(
-        self,
-        run_id: str,
-        key: str,
-        value: float,
-    ) -> None:
-        ...
-
-    # --- Tags ---
-
-    @abstractmethod
-    def save_tag(
-        self,
-        run_id: str,
-        key: str,
-        value: str,
-    ) -> None:
-        ...
-
     # ================
-    # ----- Read -----
+    # ----- RUNS -----
     # ================
 
     @abstractmethod
-    def load_run(self, run_id: str) -> Run:
-        ...
+    def save_run(self, run: Run) -> None: ...
 
     @abstractmethod
-    def load_params(self, run_id: str) -> dict[str, ParamValue]:
-        ...
+    def update_run(self, run: Run) -> None: ...
 
     @abstractmethod
-    def load_metrics(self, run_id: str) -> dict[str, float]:
-        ...
+    def load_run(self, run_id: str) -> Run: ...
 
     @abstractmethod
-    def load_tags(self, run_id: str) -> dict[str, str]:
-        ...
+    def delete_run(self, run_id: str) -> None: ...
 
 
-    # ==================
-    # ----- Delete -----
-    # ==================
+    # ========================
+    # ----- RUN METADATA -----
+    # ========================
 
     @abstractmethod
-    def delete_run(self, run_id: str) -> None:
-        ...
+    def save_param(self, run_id: str, key: str, value: ParamValue) -> None: ...
+
+    @abstractmethod
+    def load_params(self, run_id: str) -> dict[str, ParamValue]: ...
+    
+    @abstractmethod
+    def save_metric(self, run_id: str, key: str, value: float) -> None: ...
+    
+    @abstractmethod
+    def load_metrics(self, run_id: str) -> dict[str, float]: ...
+    
+    @abstractmethod
+    def save_tag( self, run_id: str, key: str, value: str) -> None: ...
+
+    @abstractmethod
+    def load_tags(self, run_id: str) -> dict[str, str]: ...
+
+
+    # =====================
+    # ----- ARTIFACTS -----
+    # =====================

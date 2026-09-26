@@ -9,6 +9,10 @@ from mllogs.types import ParamValue
 
 
 class SQLiteStore(DBStore):
+    # ======================
+    # ----- INITIALIZE -----
+    # ======================
+
     def __init__(self, db_path: str | Path = ".mllogs/mllogs.db") -> None:
         self._db_path = Path(db_path)
 
@@ -67,6 +71,11 @@ class SQLiteStore(DBStore):
             """     
         )
 
+
+    # ===================
+    # ----- HELPERS -----
+    # ===================
+
     def _require_run(self, run_id: str) -> None:
         row = self._connection.execute(
             "SELECT 1 FROM runs WHERE id = ?",
@@ -76,9 +85,10 @@ class SQLiteStore(DBStore):
         if row is None:
             raise KeyError(f"Run not found: {run_id}")
 
-    # =================
-    # ----- Write -----
-    # =================
+
+    # ================
+    # ----- RUNS -----
+    # ================
 
     def save_run(self, run: Run) -> None:
         with self._connection:
@@ -122,80 +132,6 @@ class SQLiteStore(DBStore):
                 raise KeyError(f"Run not found: {run.id}")
 
 
-    def save_param(
-        self,
-        run_id: str,
-        key: str,
-        value: ParamValue,
-    ) -> None:
-        with self._connection:
-            self._connection.execute(
-                """
-                INSERT INTO params (
-                    run_id,
-                    key,
-                    value
-                )
-                VALUES (?, ?, ?)
-                """,
-                (
-                    run_id,
-                    key,
-                    json.dumps(value),
-                ),
-            )
-
-
-    def save_metric(
-        self,
-        run_id: str,
-        key: str,
-        value: float,
-    ) -> None:
-        with self._connection:
-            self._connection.execute(
-                """
-                INSERT INTO metrics (
-                    run_id,
-                    key,
-                    value
-                )
-                VALUES (?, ?, ?)
-                """,
-                (
-                    run_id,
-                    key,
-                    value,
-                ),
-            )
-
-    def save_tag(
-        self,
-        run_id: str,
-        key: str,
-        value: str,
-    ) -> None:
-        with self._connection:
-            self._connection.execute(
-                """
-                INSERT INTO tags (
-                    run_id,
-                    key,
-                    value
-                )
-                VALUES (?, ?, ?)
-                """,
-                (
-                    run_id,
-                    key,
-                    value,
-                ),
-            )
-
-    # ================
-    # ----- Read -----
-    # ================
-
     def load_run(self, run_id: str) -> Run:
         run_row = self._connection.execute(
             "SELECT * FROM runs WHERE id = ?",
@@ -217,6 +153,43 @@ class SQLiteStore(DBStore):
         )
 
 
+    def delete_run(self, run_id: str) -> None:
+        with self._connection:
+            cursor = self._connection.execute(
+                """
+                DELETE FROM runs
+                WHERE id = ?
+                """,
+                (run_id,),
+            )
+
+            if cursor.rowcount == 0:
+                raise KeyError(f"Run not found: {run_id}")
+
+
+    # ========================
+    # ----- RUN METADATA -----
+    # ========================
+
+    def save_param(self, run_id: str, key: str, value: ParamValue) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO params (
+                    run_id,
+                    key,
+                    value
+                )
+                VALUES (?, ?, ?)
+                """,
+                (
+                    run_id,
+                    key,
+                    json.dumps(value),
+                ),
+            )
+
+
     def load_params(self, run_id: str) -> dict[str, ParamValue]:
         self._require_run(run_id)
 
@@ -234,6 +207,25 @@ class SQLiteStore(DBStore):
             row["key"]: json.loads(row["value"])
             for row in rows
         }
+
+
+    def save_metric(self, run_id: str, key: str, value: float) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO metrics (
+                    run_id,
+                    key,
+                    value
+                )
+                VALUES (?, ?, ?)
+                """,
+                (
+                    run_id,
+                    key,
+                    value,
+                ),
+            )
 
 
     def load_metrics(self, run_id: str) -> dict[str, float]:
@@ -255,6 +247,25 @@ class SQLiteStore(DBStore):
         }
 
 
+    def save_tag(self, run_id: str, key: str, value: str) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO tags (
+                    run_id,
+                    key,
+                    value
+                )
+                VALUES (?, ?, ?)
+                """,
+                (
+                    run_id,
+                    key,
+                    value,
+                ),
+            )
+
+
     def load_tags(self, run_id: str) -> dict[str, str]:
         self._require_run(run_id)
         
@@ -272,20 +283,3 @@ class SQLiteStore(DBStore):
             row["key"]: row["value"]
             for row in rows
         }
-
-    # ==================
-    # ----- Delete -----
-    # ==================
-
-    def delete_run(self, run_id: str) -> None:
-        with self._connection:
-            cursor = self._connection.execute(
-                """
-                DELETE FROM runs
-                WHERE id = ?
-                """,
-                (run_id,),
-            )
-
-            if cursor.rowcount == 0:
-                raise KeyError(f"Run not found: {run_id}")
