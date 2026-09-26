@@ -48,6 +48,11 @@ class Query:
     # ----- ARTIFACT -----
     # ====================
 
+    def list_artifacts(self, run_id: str) -> list[str]:
+        artifact_refs = self._db_store.load_artifact_refs(run_id)
+        return [ref.name for ref in artifact_refs]
+
+
     def load_artifact(
         self,
         run_id: str,

@@ -17,13 +17,14 @@ from mllogs import MLLogs
 
 mll = MLLogs()
 
-mll.tracker.start_run()
+mll.start_run()
 
-mll.tracker.log_param("learning_rate", 0.01)
-mll.tracker.log_metric("accuracy", 0.92)
-mll.tracker.set_tag("model", "logistic_regression")
+mll.log_param("learning_rate", 0.01)
+mll.log_metric("accuracy", 0.92)
+mll.set_tag("model", "logistic_regression")
+mll.save_artifact("model", model, "joblib")
 
-run = mll.tracker.complete_run()
+run = mll.complete_run()
 ```
 
 Query run data:
@@ -35,11 +36,19 @@ mll.query.get_metrics(run.id)
 mll.query.get_tags(run.id)
 ```
 
+Load saved artifacts:
+
+```python
+mll.query.list_artifacts(run.id)
+model = mll.query.load_artifact(run.id, "model")
+```
+
 ## Features
 
 - Start, complete, and fail experiment runs
 - Log parameters, metrics, and tags
 - Persist run data to a local SQLite database
+- Persist artifacts to local file storage
 - Query saved runs and their logged data
 
 ## Development
