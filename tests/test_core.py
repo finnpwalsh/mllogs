@@ -1,7 +1,10 @@
 import pytest
 
 from mllogs import MLLogs
+from mllogs.artifact import ArtifactRef
+from mllogs.run import RunStatus
 from mllogs.storage.db import SQLiteStore
+from mllogs.storage.artifacts import LocalArtifactStore
 
 
 # =================
@@ -11,54 +14,82 @@ from mllogs.storage.db import SQLiteStore
 @pytest.fixture
 def mll(tmp_path):
     db_store = SQLiteStore(tmp_path / "mllogs.db")
-    return MLLogs(db_store)
+    artifact_store = LocalArtifactStore(tmp_path / ".mllogs")
+    return MLLogs(db_store, artifact_store)
 
 
-# ===============
-# --- Backend ---
-# ===============
+# ================
+# ----- Runs -----
+# ================
 
-def test_query_tracker_have_same_db(mll):
-    assert mll.tracker._db_store == mll.query._db_store
+def test_start_run(mll):
+    mll.start_run()
+
+    run = mll._active_run
+
+    assert run is not None
+    assert run.status == RunStatus.RUNNING
+    assert run.ended_at is None
 
 
-# =================
-# --- Start run ---
-# =================
+def test_start_run_with_active_run(mll):
+    mll.start_run()
+
+    with pytest.raises(RuntimeError):
+        mll.start_run()
+
+
+def test_complete_run(mll):
+    mll.start_run()
+    run = mll.complete_run()
+
+    assert mll._active_run is None
+    assert run.status == RunStatus.COMPLETE
+    assert run.ended_at is not None
+
+
+def test_fail_run(mll):
+    mll.start_run()
+    run = mll.fail_run()
+
+    assert mll._active_run is None
+    assert run.status == RunStatus.FAILED
+    assert run.ended_at is not None
+
 
 def test_start_run_persists_run(mll):
-    mll.tracker.start_run()
+    mll.start_run()
 
-    run = mll.tracker.active_run
+    run = mll._active_run
 
     assert mll.query.get_run(run.id) == run
 
 
-# ==================
-# --- Finish run ---
-# ==================
+# ===================
+# --- Round Trips ---
+# ===================
+
+# ===== RUNS =====
 
 def test_complete_run_round_trip(mll):
-    mll.tracker.start_run()
-    run = mll.tracker.complete_run()
+    mll.start_run()
+    run = mll.complete_run()
 
     assert mll.query.get_run(run.id) == run
 
 
 def test_fail_run_round_trip(mll):
-    mll.tracker.start_run()
-    run = mll.tracker.fail_run()
+    mll.start_run()
+    run = mll.fail_run()
 
     assert mll.query.get_run(run.id) == run
 
 
-# ================
-# --- Log data ---
-# ================
+# ===== DATA =====
 
 def test_param_round_trip(mll):
-    mll.tracker.start_run()
-    run_id = mll.tracker.active_run.id
+    mll.start_run()
+    run_id = mll._active_run.id
 
     params = {
         "alpha": 0.1,
@@ -68,24 +99,62 @@ def test_param_round_trip(mll):
     }
 
     for key, value in params.items():
-        mll.tracker.log_param(key, value)
+        mll.log_param(key, value)
 
     assert mll.query.get_params(run_id) == params
 
 
 def test_metric_round_trip(mll):
-    mll.tracker.start_run()
-    run_id = mll.tracker.active_run.id
+    mll.start_run()
+    run_id = mll._active_run.id
 
-    mll.tracker.log_metric("RMSE", 0.01)
+    mll.log_metric("RMSE", 0.01)
 
     assert mll.query.get_metrics(run_id) == {"RMSE": 0.01}
 
 
 def test_tag_round_trip(mll):
-    mll.tracker.start_run()
-    run_id = mll.tracker.active_run.id
+    mll.start_run()
+    run_id = mll._active_run.id
 
-    mll.tracker.set_tag("model", "ridge")
+    mll.set_tag("model", "ridge")
 
     assert mll.query.get_tags(run_id) == {"model": "ridge"}
+
+
+# ===== ARTIFACTS =====
+
+def test_artifact_round_trip(mll):
+    mll.start_run()
+    run_id = mll._active_run.id
+
+    obj = {"alpha": 0.01}
+
+    mll.save_artifact(
+        name="model",
+        obj=obj,
+        format="joblib",
+    )
+
+    assert mll.query.load_artifact(run_id, "model") == obj
+
+
+# ==========================
+# ----- Data Contracts -----
+# ==========================
+
+def test_ops_requiring_active_run(mll):
+    with pytest.raises(RuntimeError):
+        mll.log_param("alpha", 0.1)
+
+    with pytest.raises(RuntimeError):
+        mll.log_metric("RMSE", 0.01)
+
+    with pytest.raises(RuntimeError):
+        mll.set_tag("model", "ridge")
+
+    with pytest.raises(RuntimeError):
+        mll.complete_run()
+
+    with pytest.raises(RuntimeError):
+        mll.fail_run()

@@ -48,23 +48,22 @@ class Query:
     # ----- ARTIFACT -----
     # ====================
 
-    def get_artifact_refs(self, run_id: str) -> list[ArtifactRef]:
-        return self._db_store.load_artifact_refs(run_id)
-
-    
     def load_artifact(
         self,
         run_id: str,
         name: str,
-        format: str,
     ) -> Any:
-        serializer = get_serializer(format)
+        artifact_refs = self._db_store.load_artifact_refs(run_id)
         
-        artifact_ref = ArtifactRef(
-            run_id=run_id,
-            name=name,
-            format=format,
-        )
+        artifact_ref = None
+        for ref in artifact_refs:
+            if ref.name == name:
+                artifact_ref = ref
+                break
 
+        if artifact_ref is None:
+            raise KeyError(f"Artifact '{name}' not found for run '{run_id}'.")
+
+        serializer = get_serializer(artifact_ref.format)
         data = self._artifact_store.load(artifact_ref.uri)
         return serializer.deserialize(data)
