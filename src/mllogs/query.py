@@ -1,14 +1,38 @@
+from typing import Any
+
+from .artifact import ArtifactRef
 from .run import Run
-from .types import ParamValue
+from .serializers import get_serializer
 from .storage.db import DBStore
+from .storage.artifacts import ArtifactStore
+from .types import ParamValue
 
 
 class Query:
-    def __init__(self, db_store: DBStore) -> None:
+    # ======================
+    # ----- INITIALIZE -----
+    # ======================
+    
+    def __init__(
+        self,
+        db_store: DBStore,
+        artifact_store: ArtifactStore,
+    ) -> None:
         self._db_store = db_store
+        self._artifact_store = artifact_store
+
+
+    # ===============
+    # ----- RUN -----
+    # ===============
 
     def get_run(self, run_id: str) -> Run:
         return self._db_store.load_run(run_id)
+
+
+    # ========================
+    # ----- RUN METADATA -----
+    # ========================
 
     def get_params(self, run_id: str) -> dict[str, ParamValue]:
         return self._db_store.load_params(run_id)
@@ -18,3 +42,15 @@ class Query:
 
     def get_tags(self, run_id: str) -> dict[str, str]:
         return self._db_store.load_tags(run_id)
+
+
+    # ====================
+    # ----- ARTIFACT -----
+    # ====================
+
+    def load_artifact(self, artifact_ref: ArtifactRef) -> Any:
+
+        data = self._artifact_store.load(artifact_ref.uri)
+
+        serializer = get_serializer(format)
+        return serializer.deserialize(data)
