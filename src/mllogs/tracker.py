@@ -2,13 +2,13 @@ from datetime import datetime, UTC
 
 from .types import ParamValue
 from .run import Run, RunStatus
-from .storage.db import DBStore, SQLiteStore
+from .storage.db import DBStore
 
 
 class Tracker:
     def __init__(self, db_store: DBStore) -> None:
         self._active_run: Run | None = None
-        self._db_store = db_store if db_store else SQLiteStore()
+        self._db_store = db_store
 
 
     @property
