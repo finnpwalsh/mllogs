@@ -6,6 +6,7 @@ from datetime import datetime
 from .base import DBStore
 from mllogs.run import Run, RunStatus
 from mllogs.types import ParamValue
+from mllogs.artifact import ArtifactRef
 
 
 class SQLiteStore(DBStore):
@@ -64,6 +65,18 @@ class SQLiteStore(DBStore):
                 value           TEXT NOT NULL,
 
                 PRIMARY KEY (run_id, key),
+                FOREIGN KEY (run_id)
+                    REFERENCES runs(id)
+                    ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS artifacts (
+                run_id          TEXT NOT NULL,
+                name            TEXT NOT NULL,
+                format          TEXT NOT NULL,
+
+                PRIMARY KEY (run_id, name),
+                
                 FOREIGN KEY (run_id)
                     REFERENCES runs(id)
                     ON DELETE CASCADE
@@ -189,7 +202,6 @@ class SQLiteStore(DBStore):
                 ),
             )
 
-
     def load_params(self, run_id: str) -> dict[str, ParamValue]:
         self._require_run(run_id)
 
@@ -226,7 +238,6 @@ class SQLiteStore(DBStore):
                     value,
                 ),
             )
-
 
     def load_metrics(self, run_id: str) -> dict[str, float]:
         self._require_run(run_id)
@@ -265,7 +276,6 @@ class SQLiteStore(DBStore):
                 ),
             )
 
-
     def load_tags(self, run_id: str) -> dict[str, str]:
         self._require_run(run_id)
         
@@ -283,3 +293,39 @@ class SQLiteStore(DBStore):
             row["key"]: row["value"]
             for row in rows
         }
+
+
+    # =====================
+    # ----- ARTIFACTS -----
+    # =====================
+
+    def save_artifact_ref(self, ref: ArtifactRef) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO artifacts (run_id, name, format)
+                VALUES (?, ?, ?)
+                """,
+                (ref.run_id, ref.name, ref.format),
+            )
+
+    def load_artifact_refs(self, run_id: str) -> list[ArtifactRef]:
+        self._require_run(run_id)
+
+        rows = self._connection.execute(
+            """
+            SELECT name, format
+            FROM artifacts
+            WHERE run_id = ?
+            """,
+            (run_id,),
+        ).fetchall()
+
+        return [
+            ArtifactRef(
+                run_id=run_id,
+                name=row["name"],
+                format=row["format"],
+            )
+            for row in rows
+        ]

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from mllogs.run import Run
 from mllogs.types import ParamValue
+from mllogs.artifact import ArtifactRef
 
 
 class DBStore(ABC):
@@ -48,3 +49,9 @@ class DBStore(ABC):
     # =====================
     # ----- ARTIFACTS -----
     # =====================
+
+    @abstractmethod
+    def save_artifact_ref(self, ref: ArtifactRef) -> None: ...
+
+    @abstractmethod
+    def load_artifact_refs(self, run_id: str) -> list[ArtifactRef]: ...
