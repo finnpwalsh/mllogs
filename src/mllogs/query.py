@@ -48,9 +48,23 @@ class Query:
     # ----- ARTIFACT -----
     # ====================
 
-    def load_artifact(self, artifact_ref: ArtifactRef) -> Any:
+    def get_artifact_refs(self, run_id: str) -> list[ArtifactRef]:
+        return self._db_store.load_artifact_refs(run_id)
+
+    
+    def load_artifact(
+        self,
+        run_id: str,
+        name: str,
+        format: str,
+    ) -> Any:
+        serializer = get_serializer(format)
+        
+        artifact_ref = ArtifactRef(
+            run_id=run_id,
+            name=name,
+            format=format,
+        )
 
         data = self._artifact_store.load(artifact_ref.uri)
-
-        serializer = get_serializer(format)
         return serializer.deserialize(data)
