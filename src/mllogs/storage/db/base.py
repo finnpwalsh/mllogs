@@ -53,7 +53,6 @@ class DBStore(ABC):
     @abstractmethod
     def save_artifact_ref(self, ref: ArtifactRef) -> None: ...
 
-
     @abstractmethod
     def load_artifact_ref(self, artifact_id: str) -> ArtifactRef: ...
 
