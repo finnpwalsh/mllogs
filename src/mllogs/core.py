@@ -126,7 +126,7 @@ class MLLogs:
     def save_artifact(self, name: str, obj: Any, format: str) -> ArtifactRef:
         run = self._require_active_run()
 
-        artifact_ref = ArtifactRef(
+        artifact_ref = ArtifactRef.create(
             run_id=run.id,
             name=name,
             format=format,

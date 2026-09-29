@@ -9,12 +9,12 @@ from mllogs.query import Query
 @pytest.fixture
 def artifact_refs():
     return [
-        ArtifactRef(
+        ArtifactRef.create(
             run_id="run-123",
             name="model",
             format="joblib",
         ),
-        ArtifactRef(
+        ArtifactRef.create(
             run_id="run-123",
             name="predictions",
             format="csv",

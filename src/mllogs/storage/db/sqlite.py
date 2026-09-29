@@ -71,11 +71,12 @@ class SQLiteStore(DBStore):
             );
 
             CREATE TABLE IF NOT EXISTS artifacts (
+                id              TEXT PRIMARY KEY,
                 run_id          TEXT NOT NULL,
                 name            TEXT NOT NULL,
                 format          TEXT NOT NULL,
 
-                PRIMARY KEY (run_id, name),
+                UNIQUE (run_id, name),
                 
                 FOREIGN KEY (run_id)
                     REFERENCES runs(id)
@@ -303,10 +304,10 @@ class SQLiteStore(DBStore):
         with self._connection:
             self._connection.execute(
                 """
-                INSERT INTO artifacts (run_id, name, format)
-                VALUES (?, ?, ?)
+                INSERT INTO artifacts (id, run_id, name, format)
+                VALUES (?, ?, ?, ?)
                 """,
-                (ref.run_id, ref.name, ref.format),
+                (ref.id, ref.run_id, ref.name, ref.format),
             )
 
     def load_artifact_refs(self, run_id: str) -> list[ArtifactRef]:
@@ -314,7 +315,7 @@ class SQLiteStore(DBStore):
 
         rows = self._connection.execute(
             """
-            SELECT name, format
+            SELECT id, run_id, name, format
             FROM artifacts
             WHERE run_id = ?
             """,
@@ -323,7 +324,8 @@ class SQLiteStore(DBStore):
 
         return [
             ArtifactRef(
-                run_id=run_id,
+                id=row["id"],
+                run_id=row["run_id"],
                 name=row["name"],
                 format=row["format"],
             )

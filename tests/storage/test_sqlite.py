@@ -28,7 +28,7 @@ def run():
 
 @pytest.fixture
 def artifact_ref():
-    return ArtifactRef(
+    return ArtifactRef.create(
         run_id="run-123",
         name="model",
         format="joblib",
