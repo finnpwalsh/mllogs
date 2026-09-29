@@ -58,17 +58,9 @@ class Query:
         run_id: str,
         name: str,
     ) -> Any:
-        artifact_refs = self._db_store.load_artifact_refs(run_id)
+        artifact_ref = self._db_store.load_artifact_ref_by_name(run_id, name)
         
-        artifact_ref = None
-        for ref in artifact_refs:
-            if ref.name == name:
-                artifact_ref = ref
-                break
-
-        if artifact_ref is None:
-            raise KeyError(f"Artifact '{name}' not found for run '{run_id}'.")
-
         serializer = get_serializer(artifact_ref.format)
         data = self._artifact_store.load(artifact_ref.uri)
+        
         return serializer.deserialize(data)

@@ -310,6 +310,23 @@ class SQLiteStore(DBStore):
                 (ref.id, ref.run_id, ref.name, ref.format),
             )
 
+    def load_artifact_ref(self, artifact_id: str) -> ArtifactRef:
+        row = self._connection.execute(
+            """
+            SELECT id, run_id, name, format
+            FROM artifacts
+            WHERE id = ?
+            """,
+            (artifact_id,),
+        ).fetchone()
+
+        return ArtifactRef(
+            id=row["id"],
+            run_id=row["run_id"],
+            name=row["name"],
+            format=row["format"],
+        )
+
     def load_artifact_refs(self, run_id: str) -> list[ArtifactRef]:
         self._require_run(run_id)
 
@@ -331,3 +348,23 @@ class SQLiteStore(DBStore):
             )
             for row in rows
         ]
+
+    def load_artifact_ref_by_name(self, run_id: str, name: str) -> ArtifactRef:
+        self._require_run(run_id)
+
+        row = self._connection.execute(
+            """
+            SELECT id, run_id, name, format
+            FROM artifacts
+            WHERE run_id = ?
+                AND name = ?
+            """,
+            (run_id, name),
+        ).fetchone()
+
+        return ArtifactRef(
+            id=row["id"],
+            run_id=row["run_id"],
+            name=row["name"],
+            format=row["format"],
+        )

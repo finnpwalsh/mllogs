@@ -1,7 +1,6 @@
 import pytest
 
 from mllogs import MLLogs
-from mllogs.artifact import ArtifactRef
 from mllogs.run import RunStatus
 from mllogs.storage.db import SQLiteStore
 from mllogs.storage.artifacts import LocalArtifactStore

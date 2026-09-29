@@ -58,7 +58,6 @@ class MLLogs:
         self._db_store.save_run(run)
         self._active_run = run
 
-
     def complete_run(self) -> Run:
         """
         Complete and persist the active run.
@@ -72,7 +71,6 @@ class MLLogs:
         self._active_run = None
 
         return run
-
 
     def fail_run(self) -> Run:
         """
@@ -101,7 +99,6 @@ class MLLogs:
             value=value,
         )
 
-
     def log_metric(self, key: str, value: float) -> None:
         run = self._require_active_run()
         self._db_store.save_metric(
@@ -110,7 +107,6 @@ class MLLogs:
             value=value,
         )
 
-
     def set_tag(self, key: str, value: str) -> None:
         run = self._require_active_run()
         self._db_store.save_tag(
@@ -118,6 +114,7 @@ class MLLogs:
             key=key,
             value=value,
         )
+
 
     # ====================
     # ----- ARTIFACT -----
