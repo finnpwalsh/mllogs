@@ -7,6 +7,7 @@ from .base import DBStore
 from mllogs.run import Run, RunStatus
 from mllogs.types import ParamValue
 from mllogs.artifact import ArtifactRef
+from mllogs.model import RegisteredModel, ModelVersion
 
 
 class SQLiteStore(DBStore):
@@ -82,7 +83,31 @@ class SQLiteStore(DBStore):
                     REFERENCES runs(id)
                     ON DELETE CASCADE
             );
-            """     
+
+            CREATE TABLE IF NOT EXISTS registered_models (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS model_versions (
+                id TEXT PRIMARY KEY,
+                model_id TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                artifact_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+
+                UNIQUE (model_id, version),
+
+                FOREIGN KEY (model_id)
+                    REFERENCES registered_models(id)
+                    ON DELETE CASCADE,
+                
+                FOREIGN KEY (artifact_id)
+                    REFERENCES artifacts(id)
+                    ON DELETE CASCADE
+            );
+            """  
         )
 
 
@@ -368,3 +393,128 @@ class SQLiteStore(DBStore):
             name=row["name"],
             format=row["format"],
         )
+
+    # ==================
+    # ----- MODELS -----
+    # ==================
+
+    def save_registered_model(self, model: RegisteredModel) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO registered_models (id, name, created_at)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    model.id,
+                    model.name,
+                    model.created_at.isoformat(),
+                ),
+            )
+
+    def load_registered_model(self, model_id: str) -> RegisteredModel:
+        row = self._connection.execute(
+            """
+            SELECT id, name, created_at
+            FROM registered_models
+            WHERE id = ?
+            """,
+            (model_id,),
+        ).fetchone()
+
+        return RegisteredModel(
+            id=row["id"],
+            name=row["name"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+    def load_registered_model_by_name(self, name: str) -> RegisteredModel:
+        row = self._connection.execute(
+            """
+            SELECT id, name, created_at
+            FROM registered_models
+            WHERE name = ?
+            """,
+            (name,),
+        ).fetchone()
+
+        return RegisteredModel(
+        id=row["id"],
+        name=row["name"],
+        created_at=datetime.fromisoformat(row["created_at"]),                
+        )
+
+    def save_model_version(self, model_version: ModelVersion) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO model_versions (id, model_id, version, artifact_id, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    model_version.id,
+                    model_version.model_id,
+                    model_version.version,
+                    model_version.artifact_id,
+                    model_version.created_at.isoformat(),
+                ),
+            )
+
+    def load_model_version(self, model_version_id: str) -> ModelVersion:
+        row = self._connection.execute(
+            """
+            SELECT id, model_id, version, artifact_id, created_at
+            FROM model_versions
+            WHERE id = ?
+            """,
+            (model_version_id,),
+        ).fetchone()
+
+        return ModelVersion(
+            id=row["id"],
+            model_id=row["model_id"],
+            version=row["version"],
+            artifact_id=row["artifact_id"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+    def load_model_version_by_model(self, model_id: str, version: int) -> ModelVersion:
+        row = self._connection.execute(
+            """
+            SELECT id, model_id, version, artifact_id, created_at
+            FROM model_versions
+            WHERE model_id = ?
+            AND version = ?
+            """,
+            (model_id, version),
+        ).fetchone()
+
+        return ModelVersion(
+            id=row["id"],
+            model_id=row["model_id"],
+            version=row["version"],
+            artifact_id=row["artifact_id"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+    def load_model_versions(self, model_id: str) -> list[ModelVersion]:
+        rows = self._connection.execute(
+            """
+            SELECT id, model_id, version, artifact_id, created_at
+            FROM model_versions
+            WHERE model_id = ?
+            ORDER BY version ASC
+            """,
+            (model_id,),
+        ).fetchall()
+        
+        return [
+            ModelVersion(
+                id=row["id"],
+                model_id=row["model_id"],
+                version=row["version"],
+                artifact_id=row["artifact_id"],
+                created_at=datetime.fromisoformat(row["created_at"]),
+            )
+            for row in rows
+        ]

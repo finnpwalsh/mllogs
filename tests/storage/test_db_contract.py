@@ -4,6 +4,7 @@ import pytest
 from mllogs.artifact import ArtifactRef
 from mllogs.run import Run, RunStatus
 from mllogs.storage.db import SQLiteStore
+from mllogs.model import RegisteredModel, ModelVersion
 
 
 # ================
@@ -164,14 +165,77 @@ def test_load_tags_missing_run_raises_error(store):
 def test_artifact_ref_round_trip(store, run, artifact_ref):
     store.save_run(run)
     store.save_artifact_ref(artifact_ref)
-    assert store.load_artifact_refs(run.id) == [artifact_ref]
-
+    
+    assert store.load_artifact_ref(artifact_ref.id) == artifact_ref
+    assert store.load_artifact_ref_by_name(artifact_ref.run_id, artifact_ref.name) == artifact_ref
 
 def test_load_artifact_refs_empty(store, run):
     store.save_run(run)
     assert store.load_artifact_refs(run.id) == []
 
-
 def test_load_artifact_refs_missing_run_raises_error(store):
     with pytest.raises(KeyError):
         store.load_artifact_refs("missing")
+
+
+# ===== MODELS =====
+
+@pytest.fixture
+def registered_model():
+    return RegisteredModel.create(name="linear_regression")
+
+@pytest.fixture
+def model_version(registered_model, artifact_ref):
+    return ModelVersion.create(
+        model_id=registered_model.id,
+        version=1,
+        artifact_id=artifact_ref.id,
+    )
+
+@pytest.fixture
+def model_versions(registered_model, artifact_ref):
+    return [
+        ModelVersion.create(
+            model_id=registered_model.id,
+            version=version,
+            artifact_id=artifact_ref.id,
+        )
+        for version in [1, 2, 3]
+    ]
+
+def test_registered_model_round_trip(store, registered_model):
+    store.save_registered_model(registered_model)
+    assert store.load_registered_model(registered_model.id) == registered_model
+    assert store.load_registered_model_by_name(registered_model.name) == registered_model
+
+def test_model_version_round_trip(
+    store, 
+    run,
+    artifact_ref,
+    registered_model,
+    model_version,
+
+):
+    store.save_run(run)
+    store.save_artifact_ref(artifact_ref)
+    store.save_registered_model(registered_model)
+    store.save_model_version(model_version)
+
+    assert store.load_model_version(model_version.id) == model_version
+    assert store.load_model_version_by_model(model_version.model_id, model_version.version) == model_version
+
+def test_load_model_versions(
+    store,
+    run,
+    artifact_ref,
+    registered_model,
+    model_versions,
+):
+    store.save_run(run)
+    store.save_artifact_ref(artifact_ref)
+    store.save_registered_model(registered_model)
+
+    for model_version in model_versions:
+        store.save_model_version(model_version)
+
+    assert store.load_model_versions(registered_model.id) == model_versions

@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from mllogs.run import Run
 from mllogs.types import ParamValue
 from mllogs.artifact import ArtifactRef
+from mllogs.model import RegisteredModel, ModelVersion
 
 
 class DBStore(ABC):
@@ -61,3 +62,29 @@ class DBStore(ABC):
 
     @abstractmethod
     def load_artifact_ref_by_name(self, run_id: str, name: str) -> ArtifactRef: ...
+
+
+    # ==================
+    # ----- MODELS -----
+    # ==================
+
+    @abstractmethod
+    def save_registered_model(self, model: RegisteredModel) -> None: ...
+
+    @abstractmethod
+    def load_registered_model(self, model_id: str) -> RegisteredModel: ...
+
+    @abstractmethod
+    def load_registered_model_by_name(self, name: str) -> RegisteredModel: ...
+
+    @abstractmethod
+    def save_model_version(self, model_version: ModelVersion) -> None: ...
+
+    @abstractmethod
+    def load_model_version(self, model_version_id: str) -> ModelVersion: ...
+
+    @abstractmethod
+    def load_model_version_by_model(self, model_id: str, version: int) -> ModelVersion: ...
+
+    @abstractmethod
+    def load_model_versions(self, model_id: str) -> list[ModelVersion]: ...

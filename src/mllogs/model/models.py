@@ -9,9 +9,10 @@ class RegisteredModel:
     name: str
     created_at: datetime
 
+    @classmethod
     def create(cls, name: str) -> "RegisteredModel":
         return cls(
-            id=uuid4(),
+            id=str(uuid4()),
             name=name,
             created_at=datetime.now(UTC),
         )
@@ -21,10 +22,11 @@ class RegisteredModel:
 class ModelVersion:
     id: str
     model_id: str
-    version: str
+    version: int
     artifact_id: str
     created_at: datetime
 
+    @classmethod
     def create(
         cls,
         model_id: str,
@@ -32,7 +34,7 @@ class ModelVersion:
         artifact_id: str,
     ) -> "ModelVersion":
         return cls(
-            id=uuid4(),
+            id=str(uuid4()),
             model_id=model_id,
             version=version,
             artifact_id=artifact_id,
