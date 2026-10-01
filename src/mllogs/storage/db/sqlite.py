@@ -518,3 +518,26 @@ class SQLiteStore(DBStore):
             )
             for row in rows
         ]
+
+    def load_latest_model_version(self, model_id: str) -> ModelVersion:
+        row = self._connection.execute(
+            """
+            SELECT *
+            FROM model_versions
+            WHERE model_id = ?
+            ORDER BY version DESC
+            LIMIT 1
+            """,
+            (model_id,),
+        ).fetchone()
+
+        if row is None:
+            raise KeyError(f"No model versions found for model '{model_id}")
+
+        return ModelVersion(
+            id=row["id"],
+            model_id=row["model_id"],
+            version=row["version"],
+            artifact_id=row["artifact_id"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )

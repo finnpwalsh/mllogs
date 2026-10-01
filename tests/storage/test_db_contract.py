@@ -239,3 +239,4 @@ def test_load_model_versions(
         store.save_model_version(model_version)
 
     assert store.load_model_versions(registered_model.id) == model_versions
+    assert store.load_latest_model_version(registered_model.id).version == 3

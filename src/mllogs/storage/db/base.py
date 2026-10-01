@@ -88,3 +88,6 @@ class DBStore(ABC):
 
     @abstractmethod
     def load_model_versions(self, model_id: str) -> list[ModelVersion]: ...
+
+    @abstractmethod
+    def load_latest_model_version(self, model_id: str) -> ModelVersion: ...
