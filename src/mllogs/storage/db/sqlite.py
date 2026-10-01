@@ -470,6 +470,9 @@ class SQLiteStore(DBStore):
             (model_version_id,),
         ).fetchone()
 
+        if row is None:
+            raise KeyError(f"No model versions found for id '{model_version_id}'.")
+
         return ModelVersion(
             id=row["id"],
             model_id=row["model_id"],
@@ -489,6 +492,9 @@ class SQLiteStore(DBStore):
             (model_id, version),
         ).fetchone()
 
+        if row is None:
+            raise KeyError(f"Model version '{version}' not found for model '{model_id}'.")
+
         return ModelVersion(
             id=row["id"],
             model_id=row["model_id"],
@@ -507,6 +513,9 @@ class SQLiteStore(DBStore):
             """,
             (model_id,),
         ).fetchall()
+
+        if rows is None:
+            raise KeyError(f"No model versions found for model '{model_id}'.")
         
         return [
             ModelVersion(
