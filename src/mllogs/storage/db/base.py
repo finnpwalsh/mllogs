@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from mllogs.run import Run
 from mllogs.types import ParamValue
 from mllogs.artifact import ArtifactRef
-from mllogs.model import RegisteredModel, ModelVersion
+from mllogs.model.models import RegisteredModel, ModelVersion
 
 
 class DBStore(ABC):

@@ -7,7 +7,7 @@ from .base import DBStore
 from mllogs.run import Run, RunStatus
 from mllogs.types import ParamValue
 from mllogs.artifact import ArtifactRef
-from mllogs.model import RegisteredModel, ModelVersion
+from mllogs.model.models import RegisteredModel, ModelVersion
 
 
 class SQLiteStore(DBStore):
@@ -437,6 +437,9 @@ class SQLiteStore(DBStore):
             """,
             (name,),
         ).fetchone()
+
+        if row is None:
+            raise KeyError(f"No model of name '{name}' has been registered.")
 
         return RegisteredModel(
         id=row["id"],
