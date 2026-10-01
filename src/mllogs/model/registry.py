@@ -15,12 +15,6 @@ class ModelRegistry:
     def _get_registered_model(self, name: str) -> RegisteredModel:
         return self._db_store.load_registered_model_by_name(name)
 
-    def _get_or_create_registered_model(self, name: str) -> RegisteredModel:
-        try:
-            return self._get_registered_model(name)
-        except KeyError:
-            return self.register_model(name)
-
 
     # ====================
     # ----- REGISTRY -----
@@ -28,13 +22,16 @@ class ModelRegistry:
 
     # --- Registered Model ---
     def register_model(self, name: str) -> RegisteredModel:
-        model = RegisteredModel.create(name)
-        self._db_store.save_registered_model(model)
-        return model
+        try:
+            return self._get_registered_model(name)
+        except KeyError:
+            model = RegisteredModel.create(name)
+            self._db_store.save_registered_model(model)
+            return model
 
     # --- Model Version ---
     def create_version(self, model_name: str, artifact_ref: ArtifactRef) -> ModelVersion:
-        registered_model = self._get_or_create_registered_model(model_name)
+        registered_model = self.register_model(model_name)
 
         try:
             latest = self._db_store.load_latest_model_version(registered_model.id)
