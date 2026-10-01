@@ -1,6 +1,6 @@
 # mllogs
 
-Local experiment logging for machine learning.
+Lightweight experiment tracking and model registry for machine learning.
 
 ## Installation
 
@@ -43,6 +43,34 @@ mll.query.list_artifacts(run.id)
 model = mll.query.load_artifact(run.id, "model")
 ```
 
+Register and version persisted model artifacts:
+
+```python
+model_ref = mll.save_artifact("model", model, "joblib")
+mll.registry.create_version("credit-risk", model_ref)
+
+latest = mll.registry.get_latest_version("credit-risk")
+```
+
+`create_version` automatically registers the model if it does not alreadt exist.
+
+You can also register a model explicitly:
+
+```python 
+mll.registry.register_model("credit-risk")
+```
+
+And load a specific model version:
+```
+python
+version = mll.registry.get_version(
+    model_name="credit-risk",
+    version=1,
+)
+
+Model version reference persisted artifacts, while artifact storage and model registration remain separate parts of the ML lifecycle.
+```
+
 ## Features
 
 - Start, complete, and fail experiment runs
@@ -50,6 +78,7 @@ model = mll.query.load_artifact(run.id, "model")
 - Persist run data to a local SQLite database
 - Persist artifacts to local file storage
 - Query saved runs and their logged data
+- Register models and create versioned references to persisted model artifacts
 
 ## Development
 

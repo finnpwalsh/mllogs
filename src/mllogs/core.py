@@ -8,6 +8,7 @@ from .serializers import get_serializer
 from .storage.artifacts import ArtifactStore, LocalArtifactStore
 from .storage.db import DBStore, SQLiteStore
 from .types import ParamValue
+from .model.registry import ModelRegistry
 
 
 class MLLogs:
@@ -29,6 +30,8 @@ class MLLogs:
             db_store=self._db_store,
             artifact_store=self._artifact_store,
         )
+
+        self.registry = ModelRegistry(self._db_store)
 
 
     # ===================
