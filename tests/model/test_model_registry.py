@@ -44,6 +44,12 @@ def test_register_model(registry):
     model = registry.register_model("credit-risk")
     assert model.name == "credit-risk"
 
+def test_register_model_is_idempotent(registry):
+    first = registry.register_model("credit-risk")
+    second = registry.register_model("credit-risk")
+
+    assert second == first
+
 
 # =========================
 # ----- MODEL VERSION -----

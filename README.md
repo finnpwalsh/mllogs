@@ -61,15 +61,16 @@ mll.registry.register_model("credit-risk")
 ```
 
 And load a specific model version:
-```
-python
+
+```python
 version = mll.registry.get_version(
     model_name="credit-risk",
     version=1,
 )
 
-Model version reference persisted artifacts, while artifact storage and model registration remain separate parts of the ML lifecycle.
 ```
+Model version reference persisted artifacts, while artifact storage and model registration remain separate parts of the ML lifecycle.
+
 
 ## Features
 
