@@ -4,7 +4,7 @@ import pytest
 from mllogs.artifact import ArtifactRef
 from mllogs.run import Run, RunStatus
 from mllogs.storage.db import SQLiteStore
-from mllogs.model import RegisteredModel, ModelVersion
+from mllogs.model.models import RegisteredModel, ModelVersion
 
 
 # ================
