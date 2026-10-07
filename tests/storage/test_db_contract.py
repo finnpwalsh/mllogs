@@ -2,6 +2,7 @@ from datetime import datetime, UTC
 import pytest
 
 from mllogs.artifact import ArtifactRef
+from mllogs.experiment import Experiment
 from mllogs.run import Run, RunStatus
 from mllogs.storage.db import SQLiteStore
 from mllogs.model.models import RegisteredModel, ModelVersion
@@ -21,6 +22,12 @@ DB_STORES = [
 def store(request, tmp_path):
     store_class = request.param
     return store_class(tmp_path / "mllogs.db")
+
+@pytest.fixture
+def experiment(store):
+    experiment = Experiment.create("ridge-finder")
+    store.save_experiment(experiment)
+    return experiment
 
 
 @pytest.fixture
@@ -66,6 +73,28 @@ def artifact_ref():
 # ========================
 # --- DBStore Contract ---
 # ========================
+
+# ===== EXPERIMENTS =====
+
+def test_experiment_round_trip(store, experiment):
+    assert store.load_experiment(experiment.id) == experiment
+    assert store.load_experiment_by_name(experiment.name) == experiment
+
+def test_delete_experiment(store, experiment):
+    store.delete_experiment(experiment.id)
+
+    with pytest.raises(KeyError):
+        store.load_experiment(experiment.id)
+
+def test_missing_experiment_raises_error(store):
+    with pytest.raises(KeyError):
+        store.load_experiment("experiment-123")
+
+    with pytest.raises(KeyError):
+        store.load_experiment_by_name("ridge-finder")
+
+    with pytest.raises(KeyError):
+        store.delete_experiment("experiment-123")
 
 
 # ===== RUNS =====

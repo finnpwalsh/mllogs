@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 from .base import DBStore
+from mllogs.experiment import Experiment
 from mllogs.run import Run, RunStatus
 from mllogs.types import ParamValue
 from mllogs.artifact import ArtifactRef
@@ -26,15 +27,25 @@ class SQLiteStore(DBStore):
 
         self._initialize_schema()
 
-
     def _initialize_schema(self) -> None:
         self._connection.executescript(
             """
+            CREATE TABLE IF NOT EXISTS experiments (
+                id              TEXT PRIMARY KEY,
+                name            TEXT NOT NULL UNIQUE,
+                created_at      TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS runs (
-                id          TEXT PRIMARY KEY,
-                started_at  TEXT NOT NULL,
-                status      TEXT NOT NULL,
-                ended_at    TEXT
+                id              TEXT PRIMARY KEY,
+                started_at      TEXT NOT NULL,
+                status          TEXT NOT NULL,
+                experiment_id   TEXT,
+                ended_at        TEXT,
+
+                FOREIGN KEY (experiment_id)
+                    REFERENCES experiments(id)
+                    ON DELETE SET NULL
             );
 
             CREATE TABLE IF NOT EXISTS params (
@@ -46,7 +57,6 @@ class SQLiteStore(DBStore):
                 FOREIGN KEY (run_id)
                     REFERENCES runs(id)
                     ON DELETE CASCADE
-            
             );
 
             CREATE TABLE IF NOT EXISTS metrics (
@@ -125,6 +135,76 @@ class SQLiteStore(DBStore):
             raise KeyError(f"Run not found: {run_id}")
 
 
+    # =======================
+    # ----- EXPERIMENTS -----
+    # =======================
+    
+    def save_experiment(self, experiment: Experiment) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO experiments (
+                    id,
+                    name,
+                    created_at
+                )
+                VALUES (?, ?, ?)
+                """,
+                (experiment.id, experiment.name, experiment.created_at.isoformat()),
+            )
+
+    def load_experiment(self, experiment_id: str) -> Experiment:
+        row = self._connection.execute(
+            """
+            SELECT id, name, created_at
+            FROM experiments
+            WHERE id = ?
+            """,
+            (experiment_id,),
+        ).fetchone()
+
+        if row is None:
+            raise KeyError(f"No experiment found for id '{experiment_id}'.")
+
+        return Experiment(
+            id=row["id"],
+            name=row["name"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+    def load_experiment_by_name(self, name: str) -> Experiment:
+        row = self._connection.execute(
+            """
+            SELECT id, name, created_at
+            FROM experiments
+            WHERE name = ?
+            """,
+            (name,),
+        ).fetchone()
+
+        if row is None:
+            raise KeyError(f"No experiment found for name '{name}'.")
+
+        return Experiment(
+            id=row["id"],
+            name=row["name"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+    def delete_experiment(self, experiment_id: str) -> None:
+        with self._connection:
+            cursor = self._connection.execute(
+                """
+                DELETE FROM experiments
+                WHERE id = ?
+                """,
+                (experiment_id,),
+            )
+
+            if cursor.rowcount == 0:
+                raise KeyError(f"No experiment found for id '{experiment_id}'.")
+
+
     # ================
     # ----- RUNS -----
     # ================
@@ -137,18 +217,19 @@ class SQLiteStore(DBStore):
                     id,
                     started_at,
                     status,
-                    ended_at
+                    ended_at,
+                    experiment_id
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
                     run.id,
                     run.started_at.isoformat(),
                     run.status.value,
                     run.ended_at.isoformat() if run.ended_at else None,
+                    run.experiment_id if run.experiment_id else None,
                 ),
             )
-
 
     def update_run(self, run: Run) -> None:
         with self._connection:
@@ -170,7 +251,6 @@ class SQLiteStore(DBStore):
             if cursor.rowcount == 0:
                 raise KeyError(f"Run not found: {run.id}")
 
-
     def load_run(self, run_id: str) -> Run:
         run_row = self._connection.execute(
             "SELECT * FROM runs WHERE id = ?",
@@ -189,8 +269,8 @@ class SQLiteStore(DBStore):
                 if run_row["ended_at"]
                 else None
             ),
+            experiment_id=run_row["experiment_id"] if run_row["experiment_id"] else None,
         )
-
 
     def delete_run(self, run_id: str) -> None:
         with self._connection:
