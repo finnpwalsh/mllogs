@@ -68,6 +68,13 @@ def test_start_run_persists_run(mll):
 # --- Round Trips ---
 # ===================
 
+# ===== EXPERIMENTS =====
+
+def test_experiment_round_trip(mll):
+    experiment = mll.create_experiment("ridge-test")
+    assert mll.query.get_experiment_by_name(experiment.name) == experiment
+
+
 # ===== RUNS =====
 
 def test_complete_run_round_trip(mll):

@@ -3,6 +3,7 @@ from typing import Any
 
 from .artifact import ArtifactRef
 from .query import Query
+from .experiment import Experiment
 from .run import Run, RunStatus
 from .serializers import get_serializer
 from .storage.artifacts import ArtifactStore, LocalArtifactStore
@@ -22,7 +23,7 @@ class MLLogs:
         artifact_store: ArtifactStore | None = None
     ) -> None:
         self._db_store = db_store if db_store is not None else SQLiteStore()
-        self._artifact_store = artifact_store if artifact_store else LocalArtifactStore()
+        self._artifact_store = artifact_store if artifact_store is not None else LocalArtifactStore()
 
         self._active_run: Run | None = None
 
@@ -32,7 +33,6 @@ class MLLogs:
         )
 
         self.registry = ModelRegistry(self._db_store)
-
 
     # ===================
     # ----- HELPERS -----
@@ -45,18 +45,31 @@ class MLLogs:
         return self._active_run
 
 
+    # ======================
+    # ----- EXPERIMENT -----
+    # ======================
+
+    def create_experiment(self, name: str) -> Experiment:
+        experiment = Experiment.create(name)
+        self._db_store.save_experiment(experiment)
+        return experiment
+
+    def delete_experiment(self, experiment_id: str) -> None:
+        self._db_store.delete_experiment(experiment_id)
+
+
     # ===============
     # ----- RUN -----
     # ===============
 
-    def start_run(self) -> None:
+    def start_run(self, experiment_id: str | None = None) -> None:
         """
         Start and persist a new run.
         """
         if self._active_run is not None:
             raise RuntimeError("Active run already exists.")
         
-        run = Run.create()
+        run = Run.create(experiment_id)
 
         self._db_store.save_run(run)
         self._active_run = run

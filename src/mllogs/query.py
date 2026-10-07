@@ -1,6 +1,7 @@
 from typing import Any
 
 from .artifact import ArtifactRef
+from .experiment import Experiment
 from .run import Run
 from .serializers import get_serializer
 from .storage.db import DBStore
@@ -20,6 +21,17 @@ class Query:
     ) -> None:
         self._db_store = db_store
         self._artifact_store = artifact_store
+
+
+    # ======================
+    # ----- EXPERIMENT -----
+    # ======================
+
+    def get_experiment_by_name(self, name: str) -> Experiment:
+        return self._db_store.load_experiment_by_name(name)
+
+    def load_experiments(self) -> list[Experiment]:
+        return self._db_store.load_experiments()
 
 
     # ===============
@@ -51,7 +63,6 @@ class Query:
     def list_artifacts(self, run_id: str) -> list[str]:
         artifact_refs = self._db_store.load_artifact_refs(run_id)
         return [ref.name for ref in artifact_refs]
-
 
     def load_artifact(
         self,
