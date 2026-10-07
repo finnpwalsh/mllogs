@@ -29,6 +29,16 @@ def experiment(store):
     store.save_experiment(experiment)
     return experiment
 
+@pytest.fixture
+def experiments(store):
+    experiments = [
+    Experiment.create(name)
+    for name in ["ridge-test", "lasso-test", "tree-test"]
+    ]
+    for experiment in experiments:
+        store.save_experiment(experiment)
+
+    return experiments
 
 @pytest.fixture
 def run():
@@ -95,6 +105,9 @@ def test_missing_experiment_raises_error(store):
 
     with pytest.raises(KeyError):
         store.delete_experiment("experiment-123")
+
+def test_load_experiments(store, experiments):
+    assert store.load_experiments() == list(reversed(experiments))
 
 
 # ===== RUNS =====

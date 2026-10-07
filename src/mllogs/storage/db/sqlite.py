@@ -191,6 +191,24 @@ class SQLiteStore(DBStore):
             created_at=datetime.fromisoformat(row["created_at"]),
         )
 
+    def load_experiments(self) -> list[Experiment]:
+        rows = self._connection.execute(
+            """
+            SELECT id, name, created_at
+            FROM experiments
+            ORDER BY created_at DESC
+            """,
+        ).fetchall()
+
+        return [
+            Experiment(
+                id=row["id"],
+                name=row["name"],
+                created_at=datetime.fromisoformat(row["created_at"]),
+            )
+            for row in rows
+        ]
+
     def delete_experiment(self, experiment_id: str) -> None:
         with self._connection:
             cursor = self._connection.execute(

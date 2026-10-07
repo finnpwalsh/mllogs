@@ -22,6 +22,9 @@ class DBStore(ABC):
     def load_experiment_by_name(self, name: str) -> Experiment: ...
 
     @abstractmethod
+    def load_experiments(self) -> list[Experiment]: ...
+
+    @abstractmethod
     def delete_experiment(self, experiment_id: str) -> None: ...
 
     # ================
