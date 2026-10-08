@@ -73,6 +73,7 @@ def test_start_run_persists_run(mll):
 def test_experiment_round_trip(mll):
     experiment = mll.create_experiment("ridge-test")
     assert mll.query.get_experiment_by_name(experiment.name) == experiment
+    assert mll.query.list_experiments() == [experiment]
 
 
 # ===== RUNS =====
@@ -97,7 +98,7 @@ def test_multiple_runs_round_trip(mll):
     runs = []
 
     for _ in range(3):
-        mll.start_run(experiment.id)
+        mll.start_run(experiment.name)
         runs.append(mll.complete_run())
 
     assert mll.query.list_runs(experiment.name) == list(reversed(runs))

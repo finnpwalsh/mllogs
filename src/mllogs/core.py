@@ -62,18 +62,19 @@ class MLLogs:
     # ----- RUN -----
     # ===============
 
-    def start_run(self, experiment_id: str | None = None) -> None:
+    def start_run(self, experiment_name: str | None = None) -> None:
         """
         Start and persist a new run.
         """
         if self._active_run is not None:
             raise RuntimeError("Active run already exists.")
 
-        if experiment_id is not None:
-            self._db_store.load_experiment(experiment_id)
+        if experiment_name is not None:
+            experiment_id = self._db_store.load_experiment_by_name(experiment_name).id
+            run = Run.create(experiment_id)
+        else:
+            run = Run.create()
         
-        run = Run.create(experiment_id)
-
         self._db_store.save_run(run)
         self._active_run = run
 
