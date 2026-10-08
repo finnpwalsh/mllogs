@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 from .base import DBStore
+from mllogs.experiment import Experiment
 from mllogs.run import Run, RunStatus
 from mllogs.types import ParamValue
 from mllogs.artifact import ArtifactRef
@@ -26,15 +27,25 @@ class SQLiteStore(DBStore):
 
         self._initialize_schema()
 
-
     def _initialize_schema(self) -> None:
         self._connection.executescript(
             """
+            CREATE TABLE IF NOT EXISTS experiments (
+                id              TEXT PRIMARY KEY,
+                name            TEXT NOT NULL UNIQUE,
+                created_at      TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS runs (
-                id          TEXT PRIMARY KEY,
-                started_at  TEXT NOT NULL,
-                status      TEXT NOT NULL,
-                ended_at    TEXT
+                id              TEXT PRIMARY KEY,
+                started_at      TEXT NOT NULL,
+                status          TEXT NOT NULL,
+                experiment_id   TEXT,
+                ended_at        TEXT,
+
+                FOREIGN KEY (experiment_id)
+                    REFERENCES experiments(id)
+                    ON DELETE SET NULL
             );
 
             CREATE TABLE IF NOT EXISTS params (
@@ -46,7 +57,6 @@ class SQLiteStore(DBStore):
                 FOREIGN KEY (run_id)
                     REFERENCES runs(id)
                     ON DELETE CASCADE
-            
             );
 
             CREATE TABLE IF NOT EXISTS metrics (
@@ -125,6 +135,94 @@ class SQLiteStore(DBStore):
             raise KeyError(f"Run not found: {run_id}")
 
 
+    # =======================
+    # ----- EXPERIMENTS -----
+    # =======================
+    
+    def save_experiment(self, experiment: Experiment) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO experiments (
+                    id,
+                    name,
+                    created_at
+                )
+                VALUES (?, ?, ?)
+                """,
+                (experiment.id, experiment.name, experiment.created_at.isoformat()),
+            )
+
+    def load_experiment(self, experiment_id: str) -> Experiment:
+        row = self._connection.execute(
+            """
+            SELECT id, name, created_at
+            FROM experiments
+            WHERE id = ?
+            """,
+            (experiment_id,),
+        ).fetchone()
+
+        if row is None:
+            raise KeyError(f"No experiment found for id '{experiment_id}'.")
+
+        return Experiment(
+            id=row["id"],
+            name=row["name"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+    def load_experiment_by_name(self, name: str) -> Experiment:
+        row = self._connection.execute(
+            """
+            SELECT id, name, created_at
+            FROM experiments
+            WHERE name = ?
+            """,
+            (name,),
+        ).fetchone()
+
+        if row is None:
+            raise KeyError(f"No experiment found for name '{name}'.")
+
+        return Experiment(
+            id=row["id"],
+            name=row["name"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+    def load_experiments(self) -> list[Experiment]:
+        rows = self._connection.execute(
+            """
+            SELECT id, name, created_at
+            FROM experiments
+            ORDER BY created_at DESC
+            """,
+        ).fetchall()
+
+        return [
+            Experiment(
+                id=row["id"],
+                name=row["name"],
+                created_at=datetime.fromisoformat(row["created_at"]),
+            )
+            for row in rows
+        ]
+
+    def delete_experiment(self, experiment_id: str) -> None:
+        with self._connection:
+            cursor = self._connection.execute(
+                """
+                DELETE FROM experiments
+                WHERE id = ?
+                """,
+                (experiment_id,),
+            )
+
+            if cursor.rowcount == 0:
+                raise KeyError(f"No experiment found for id '{experiment_id}'.")
+
+
     # ================
     # ----- RUNS -----
     # ================
@@ -137,18 +235,19 @@ class SQLiteStore(DBStore):
                     id,
                     started_at,
                     status,
-                    ended_at
+                    ended_at,
+                    experiment_id
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
                     run.id,
                     run.started_at.isoformat(),
                     run.status.value,
                     run.ended_at.isoformat() if run.ended_at else None,
+                    run.experiment_id if run.experiment_id else None,
                 ),
             )
-
 
     def update_run(self, run: Run) -> None:
         with self._connection:
@@ -170,7 +269,6 @@ class SQLiteStore(DBStore):
             if cursor.rowcount == 0:
                 raise KeyError(f"Run not found: {run.id}")
 
-
     def load_run(self, run_id: str) -> Run:
         run_row = self._connection.execute(
             "SELECT * FROM runs WHERE id = ?",
@@ -189,8 +287,44 @@ class SQLiteStore(DBStore):
                 if run_row["ended_at"]
                 else None
             ),
+            experiment_id=run_row["experiment_id"] if run_row["experiment_id"] else None,
         )
 
+    def load_runs(self, experiment_id: str | None = None) -> list[Run]:
+        if experiment_id is None:
+            rows = self._connection.execute(
+                """
+                SELECT *
+                FROM runs
+                ORDER BY started_at DESC
+                """,
+            ).fetchall()
+
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT *
+                FROM runs
+                WHERE experiment_id = ?
+                ORDER BY started_at DESC
+                """,
+                (experiment_id,),
+            ).fetchall()
+
+        return [
+            Run(
+                id=row["id"],
+                started_at=datetime.fromisoformat(row["started_at"]),
+                status=RunStatus(row["status"]),
+                ended_at=(
+                    datetime.fromisoformat(row["ended_at"])
+                    if row["ended_at"] is not None
+                    else None
+                ),
+                experiment_id=row["experiment_id"],
+            )
+            for row in rows
+        ]
 
     def delete_run(self, run_id: str) -> None:
         with self._connection:

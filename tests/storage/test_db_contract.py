@@ -1,8 +1,8 @@
-from datetime import datetime, UTC
 import pytest
 
 from mllogs.artifact import ArtifactRef
-from mllogs.run import Run, RunStatus
+from mllogs.experiment import Experiment
+from mllogs.run import Run
 from mllogs.storage.db import SQLiteStore
 from mllogs.model.models import RegisteredModel, ModelVersion
 
@@ -22,42 +22,40 @@ def store(request, tmp_path):
     store_class = request.param
     return store_class(tmp_path / "mllogs.db")
 
+@pytest.fixture
+def experiment(store):
+    experiment = Experiment.create("ridge-finder")
+    store.save_experiment(experiment)
+    return experiment
+
+@pytest.fixture
+def experiments(store):
+    experiments = [
+    Experiment.create(name)
+    for name in ["ridge-test", "lasso-test", "tree-test"]
+    ]
+    for experiment in experiments:
+        store.save_experiment(experiment)
+
+    return experiments
 
 @pytest.fixture
 def run():
-    return Run(
-        id="run-123",
-        started_at=datetime.now(UTC),
-        status=RunStatus.COMPLETE,
-        ended_at=datetime.now(UTC),
-    )
-
+    return Run.create()
 
 @pytest.fixture
 def runs():
-    return [
-        Run(
-            id="run-1",
-            started_at=datetime(2000, 1, 1, tzinfo=UTC),
-            status=RunStatus.COMPLETE,
-        ),
-        Run(
-            id="run-2",
-            started_at=datetime(2000, 1, 2, tzinfo=UTC),
-            status=RunStatus.COMPLETE,
-        ),
-        Run(
-            id="run-3",
-            started_at=datetime(2000, 1, 3, tzinfo=UTC),
-            status=RunStatus.COMPLETE,
-        ),
-    ]
+    return [Run.create() for _ in range(3)]
+
+@pytest.fixture
+def runs_with_experiment_id(experiment):
+    return [Run.create(experiment.id) for _ in range(3)]
 
 
 @pytest.fixture
-def artifact_ref():
+def artifact_ref(run):
     return ArtifactRef.create(
-        run_id="run-123",
+        run_id=run.id,
         name="model",
         format="joblib",
     )
@@ -67,6 +65,31 @@ def artifact_ref():
 # --- DBStore Contract ---
 # ========================
 
+# ===== EXPERIMENTS =====
+
+def test_experiment_round_trip(store, experiment):
+    assert store.load_experiment(experiment.id) == experiment
+    assert store.load_experiment_by_name(experiment.name) == experiment
+
+def test_delete_experiment(store, experiment):
+    store.delete_experiment(experiment.id)
+
+    with pytest.raises(KeyError):
+        store.load_experiment(experiment.id)
+
+def test_missing_experiment_raises_error(store):
+    with pytest.raises(KeyError):
+        store.load_experiment("experiment-123")
+
+    with pytest.raises(KeyError):
+        store.load_experiment_by_name("ridge-finder")
+
+    with pytest.raises(KeyError):
+        store.delete_experiment("experiment-123")
+
+def test_load_experiments(store, experiments):
+    assert store.load_experiments() == list(reversed(experiments))
+
 
 # ===== RUNS =====
 
@@ -74,11 +97,9 @@ def test_save_and_load_run(store, run):
     store.save_run(run)
     assert store.load_run(run.id) == run
 
-
 def test_load_missing_run_raises_error(store):
     with pytest.raises(KeyError):
         store.load_run("missing")
-
 
 def test_delete_run(store, run):
     store.save_run(run)
@@ -87,10 +108,23 @@ def test_delete_run(store, run):
     with pytest.raises(KeyError):
         store.load_run(run.id)
 
-
 def test_delete_missing_run_raises_error(store):
     with pytest.raises(KeyError):
         store.delete_run("missing")
+
+def test_save_and_load_runs(store, runs):
+    for run in runs:
+        store.save_run(run)
+
+    assert store.load_runs() == list(reversed(runs))
+
+def test_save_and_load_runs_with_experiment_id(store, experiment, run, runs_with_experiment_id):
+    store.save_run(run)
+    
+    for run in runs_with_experiment_id:
+        store.save_run(run)
+
+    assert store.load_runs(experiment.id) == list(reversed(runs_with_experiment_id))
 
 
 # ===== PARAMS =====

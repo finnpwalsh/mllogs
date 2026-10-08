@@ -16,9 +16,10 @@ class Run:
     started_at: datetime
     status: RunStatus
     ended_at: datetime | None = None
+    experiment_id: str | None = None
 
     @classmethod
-    def create(cls) -> "Run":
+    def create(cls, experiment_id: str | None = None) -> "Run":
         started_at = datetime.now(UTC)
 
         timestamp = started_at.strftime("%Y%m%d%H%M%S")
@@ -28,4 +29,5 @@ class Run:
             id=run_id,
             started_at=started_at,
             status=RunStatus.RUNNING,
+            experiment_id=experiment_id,
         )

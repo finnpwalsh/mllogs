@@ -1,6 +1,7 @@
 from datetime import datetime, UTC
 import pytest
 
+from mllogs.experiment import Experiment
 from mllogs.artifact import ArtifactRef
 from mllogs.run import Run, RunStatus
 from mllogs.storage.db import SQLiteStore
@@ -11,18 +12,25 @@ from mllogs.storage.db import SQLiteStore
 # ================
 
 
-@pytest.fixture()
+@pytest.fixture
 def store(tmp_path):
     return SQLiteStore(tmp_path / "mllogs.db")
 
+@pytest.fixture
+def experiment(store):
+    experiment = Experiment.create("ridge-finder")
+    store.save_experiment(experiment)
+    return experiment
+
 
 @pytest.fixture
-def run():
+def run(experiment):
     return Run(
         id="run-123",
         started_at=datetime.now(UTC),
         status=RunStatus.COMPLETE,
         ended_at=datetime.now(UTC),
+        experiment_id=experiment.id,
     )
 
 
@@ -38,6 +46,14 @@ def artifact_ref():
 # ===========================
 # ----- SQLITE CONTRACT -----
 # ===========================
+
+def test_delete_experiment_sets_run_experiment_id_to_none(store, experiment, run):
+    store.save_run(run)
+
+    store.delete_experiment(experiment.id)
+
+    retrieved_run = store.load_run(run.id)
+    assert retrieved_run.experiment_id is None
 
 def test_delete_run_cascades_child_rows(store, run, artifact_ref):
     store.save_run(run)

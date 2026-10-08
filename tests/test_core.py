@@ -68,6 +68,13 @@ def test_start_run_persists_run(mll):
 # --- Round Trips ---
 # ===================
 
+# ===== EXPERIMENTS =====
+
+def test_experiment_round_trip(mll):
+    experiment = mll.create_experiment("ridge-test")
+    assert mll.query.get_experiment_by_name(experiment.name) == experiment
+
+
 # ===== RUNS =====
 
 def test_complete_run_round_trip(mll):
@@ -82,6 +89,18 @@ def test_fail_run_round_trip(mll):
     run = mll.fail_run()
 
     assert mll.query.get_run(run.id) == run
+
+
+def test_multiple_runs_round_trip(mll):
+    experiment = mll.create_experiment("ridge-test")
+
+    runs = []
+
+    for _ in range(3):
+        mll.start_run(experiment.id)
+        runs.append(mll.complete_run())
+
+    assert mll.query.list_runs(experiment.name) == list(reversed(runs))
 
 
 # ===== DATA =====
@@ -141,6 +160,10 @@ def test_artifact_round_trip(mll):
 # ==========================
 # ----- Data Contracts -----
 # ==========================
+
+def test_start_run_with_experiment_id_without_experiment_raises(mll):
+    with pytest.raises(KeyError):
+        mll.start_run("ridge-test")
 
 def test_ops_requiring_active_run(mll):
     with pytest.raises(RuntimeError):

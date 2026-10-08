@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from mllogs.experiment import Experiment
 from mllogs.run import Run
 from mllogs.types import ParamValue
 from mllogs.artifact import ArtifactRef
@@ -7,6 +8,25 @@ from mllogs.model.models import RegisteredModel, ModelVersion
 
 
 class DBStore(ABC):
+    # =======================
+    # ----- EXPERIMENTS -----
+    # =======================
+
+    @abstractmethod
+    def save_experiment(self, experiment: Experiment) -> None: ...
+
+    @abstractmethod
+    def load_experiment(self, experiment_id: str) -> Experiment: ...
+
+    @abstractmethod
+    def load_experiment_by_name(self, name: str) -> Experiment: ...
+
+    @abstractmethod
+    def load_experiments(self) -> list[Experiment]: ...
+
+    @abstractmethod
+    def delete_experiment(self, experiment_id: str) -> None: ...
+
     # ================
     # ----- RUNS -----
     # ================
@@ -19,6 +39,9 @@ class DBStore(ABC):
 
     @abstractmethod
     def load_run(self, run_id: str) -> Run: ...
+
+    @abstractmethod
+    def load_runs(self, experiment_id: str | None = None) -> list[Run]: ...
 
     @abstractmethod
     def delete_run(self, run_id: str) -> None: ...
