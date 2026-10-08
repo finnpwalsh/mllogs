@@ -290,14 +290,26 @@ class SQLiteStore(DBStore):
             experiment_id=run_row["experiment_id"] if run_row["experiment_id"] else None,
         )
 
-    def load_runs(self) -> list[Run]:
-        rows = self._connection.execute(
-            """
-            SELECT *
-            FROM runs
-            ORDER BY started_at DESC
-            """,
-        ).fetchall()
+    def load_runs(self, experiment_id: str | None = None) -> list[Run]:
+        if experiment_id is None:
+            rows = self._connection.execute(
+                """
+                SELECT *
+                FROM runs
+                ORDER BY started_at DESC
+                """,
+            ).fetchall()
+
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT *
+                FROM runs
+                WHERE experiment_id = ?
+                ORDER BY started_at DESC
+                """,
+                (experiment_id,),
+            ).fetchall()
 
         return [
             Run(

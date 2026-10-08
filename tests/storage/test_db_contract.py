@@ -52,23 +52,11 @@ def run():
 
 @pytest.fixture
 def runs():
-    return [
-        Run(
-            id="run-1",
-            started_at=datetime(2000, 1, 1, tzinfo=UTC),
-            status=RunStatus.COMPLETE,
-        ),
-        Run(
-            id="run-2",
-            started_at=datetime(2000, 1, 2, tzinfo=UTC),
-            status=RunStatus.COMPLETE,
-        ),
-        Run(
-            id="run-3",
-            started_at=datetime(2000, 1, 3, tzinfo=UTC),
-            status=RunStatus.COMPLETE,
-        ),
-    ]
+    return [Run.create() for _ in range(3)]
+
+@pytest.fixture
+def runs_with_experiment_id(experiment):
+    return [Run.create(experiment.id) for _ in range(3)]
 
 
 @pytest.fixture
@@ -136,6 +124,12 @@ def test_save_and_load_runs(store, runs):
         store.save_run(run)
 
     assert store.load_runs() == list(reversed(runs))
+
+def test_save_and_load_runs_with_experiment_id(store, experiment, runs_with_experiment_id):
+    for run in runs_with_experiment_id:
+        store.save_run(run)
+
+    assert store.load_runs(experiment.id) == list(reversed(runs_with_experiment_id))
 
 
 # ===== PARAMS =====
