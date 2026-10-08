@@ -161,6 +161,10 @@ def test_artifact_round_trip(mll):
 # ----- Data Contracts -----
 # ==========================
 
+def test_start_run_with_experiment_id_without_experiment_raises(mll):
+    with pytest.raises(KeyError):
+        mll.start_run("ridge-test")
+
 def test_ops_requiring_active_run(mll):
     with pytest.raises(RuntimeError):
         mll.log_param("alpha", 0.1)

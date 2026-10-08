@@ -68,6 +68,9 @@ class MLLogs:
         """
         if self._active_run is not None:
             raise RuntimeError("Active run already exists.")
+
+        if experiment_id is not None:
+            self._db_store.load_experiment(experiment_id)
         
         run = Run.create(experiment_id)
 
