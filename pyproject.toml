@@ -7,8 +7,8 @@ where = ["src"]
 
 [project]
 name = "mllogs"
-version = "0.7.1"
-description = "Lightweight experiment tracking and model registry for machine learning"
+version = "0.8.0"
+description = "Local experiment tracking and model registry for machine learning"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
