@@ -1,6 +1,5 @@
 from typing import Any
 
-from .artifact import ArtifactRef
 from .experiment import Experiment
 from .run import Run
 from .serializers import get_serializer
@@ -30,7 +29,7 @@ class Query:
     def get_experiment_by_name(self, name: str) -> Experiment:
         return self._db_store.load_experiment_by_name(name)
 
-    def load_experiments(self) -> list[Experiment]:
+    def list_experiments(self) -> list[Experiment]:
         return self._db_store.load_experiments()
 
 

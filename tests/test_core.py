@@ -97,7 +97,7 @@ def test_multiple_runs_round_trip(mll):
     runs = []
 
     for _ in range(3):
-        mll.start_run(experiment.id)
+        mll.start_run(experiment.name)
         runs.append(mll.complete_run())
 
     assert mll.query.list_runs(experiment.name) == list(reversed(runs))
