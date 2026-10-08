@@ -116,11 +116,9 @@ def test_save_and_load_run(store, run):
     store.save_run(run)
     assert store.load_run(run.id) == run
 
-
 def test_load_missing_run_raises_error(store):
     with pytest.raises(KeyError):
         store.load_run("missing")
-
 
 def test_delete_run(store, run):
     store.save_run(run)
@@ -129,10 +127,15 @@ def test_delete_run(store, run):
     with pytest.raises(KeyError):
         store.load_run(run.id)
 
-
 def test_delete_missing_run_raises_error(store):
     with pytest.raises(KeyError):
         store.delete_run("missing")
+
+def test_save_and_load_runs(store, runs):
+    for run in runs:
+        store.save_run(run)
+
+    assert store.load_runs() == list(reversed(runs))
 
 
 # ===== PARAMS =====

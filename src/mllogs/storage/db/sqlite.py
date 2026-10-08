@@ -290,6 +290,30 @@ class SQLiteStore(DBStore):
             experiment_id=run_row["experiment_id"] if run_row["experiment_id"] else None,
         )
 
+    def load_runs(self) -> list[Run]:
+        rows = self._connection.execute(
+            """
+            SELECT *
+            FROM runs
+            ORDER BY started_at DESC
+            """,
+        ).fetchall()
+
+        return [
+            Run(
+                id=row["id"],
+                started_at=datetime.fromisoformat(row["started_at"]),
+                status=RunStatus(row["status"]),
+                ended_at=(
+                    datetime.fromisoformat(row["ended_at"])
+                    if row["ended_at"] is not None
+                    else None
+                ),
+                experiment_id=row["experiment_id"],
+            )
+            for row in rows
+        ]
+
     def delete_run(self, run_id: str) -> None:
         with self._connection:
             cursor = self._connection.execute(

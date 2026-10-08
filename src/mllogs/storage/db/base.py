@@ -41,6 +41,9 @@ class DBStore(ABC):
     def load_run(self, run_id: str) -> Run: ...
 
     @abstractmethod
+    def load_runs(self) -> list[Run]: ...
+
+    @abstractmethod
     def delete_run(self, run_id: str) -> None: ...
 
 
