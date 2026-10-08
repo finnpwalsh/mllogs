@@ -1,9 +1,8 @@
-from datetime import datetime, UTC
 import pytest
 
 from mllogs.artifact import ArtifactRef
 from mllogs.experiment import Experiment
-from mllogs.run import Run, RunStatus
+from mllogs.run import Run
 from mllogs.storage.db import SQLiteStore
 from mllogs.model.models import RegisteredModel, ModelVersion
 
@@ -42,13 +41,7 @@ def experiments(store):
 
 @pytest.fixture
 def run():
-    return Run(
-        id="run-123",
-        started_at=datetime.now(UTC),
-        status=RunStatus.COMPLETE,
-        ended_at=datetime.now(UTC),
-    )
-
+    return Run.create()
 
 @pytest.fixture
 def runs():
@@ -60,9 +53,9 @@ def runs_with_experiment_id(experiment):
 
 
 @pytest.fixture
-def artifact_ref():
+def artifact_ref(run):
     return ArtifactRef.create(
-        run_id="run-123",
+        run_id=run.id,
         name="model",
         format="joblib",
     )
@@ -125,7 +118,9 @@ def test_save_and_load_runs(store, runs):
 
     assert store.load_runs() == list(reversed(runs))
 
-def test_save_and_load_runs_with_experiment_id(store, experiment, runs_with_experiment_id):
+def test_save_and_load_runs_with_experiment_id(store, experiment, run, runs_with_experiment_id):
+    store.save_run(run)
+    
     for run in runs_with_experiment_id:
         store.save_run(run)
 
