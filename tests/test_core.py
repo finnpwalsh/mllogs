@@ -91,6 +91,18 @@ def test_fail_run_round_trip(mll):
     assert mll.query.get_run(run.id) == run
 
 
+def test_multiple_runs_round_trip(mll):
+    experiment = mll.create_experiment("ridge-test")
+
+    runs = []
+
+    for _ in range(3):
+        mll.start_run(experiment.id)
+        runs.append(mll.complete_run())
+
+    assert mll.query.list_runs(experiment.name) == list(reversed(runs))
+
+
 # ===== DATA =====
 
 def test_param_round_trip(mll):

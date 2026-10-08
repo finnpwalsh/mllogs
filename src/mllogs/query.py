@@ -41,6 +41,9 @@ class Query:
     def get_run(self, run_id: str) -> Run:
         return self._db_store.load_run(run_id)
 
+    def list_runs(self, experiment_name: str | None = None) -> list[Run]:
+        experiment_id = self._db_store.load_experiment_by_name(experiment_name).id
+        return self._db_store.load_runs(experiment_id)
 
     # ========================
     # ----- RUN METADATA -----
