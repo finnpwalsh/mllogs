@@ -8,7 +8,7 @@ from mllogs.experiment import Experiment
 from mllogs.run import Run, RunStatus
 from mllogs.types import ParamValue
 from mllogs.artifact import ArtifactRef
-from mllogs.model.models import RegisteredModel, ModelVersion
+from mllogs.model.models import RegisteredModel, ModelVersion, ModelAlias
 
 
 class SQLiteStore(DBStore):
@@ -115,6 +115,23 @@ class SQLiteStore(DBStore):
                 
                 FOREIGN KEY (artifact_id)
                     REFERENCES artifacts(id)
+                    ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS model_aliases (
+                id TEXT PRIMARY KEY,
+                model_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                version_id TEXT NOT NULL,
+
+                UNIQUE (model_id, name),
+
+                FOREIGN KEY (model_id)
+                    REFERENCES registered_models(id)
+                    ON DELETE CASCADE,
+                
+                FOREIGN KEY (version_id)
+                    REFERENCES model_versions(id)
                     ON DELETE CASCADE
             );
             """  
@@ -532,6 +549,8 @@ class SQLiteStore(DBStore):
     # ----- MODELS -----
     # ==================
 
+    # --- Registered Model ---
+
     def save_registered_model(self, model: RegisteredModel) -> None:
         with self._connection:
             self._connection.execute(
@@ -580,6 +599,8 @@ class SQLiteStore(DBStore):
         name=row["name"],
         created_at=datetime.fromisoformat(row["created_at"]),                
         )
+
+    # --- Model Version ---
 
     def save_model_version(self, model_version: ModelVersion) -> None:
         with self._connection:
@@ -686,4 +707,60 @@ class SQLiteStore(DBStore):
             version=row["version"],
             artifact_id=row["artifact_id"],
             created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+    # --- Model Alias ---
+
+    def save_model_alias(self, alias: ModelAlias) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO model_aliases (id, model_id, name, version_id)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(model_id, name)
+                DO UPDATE SET version_id = excluded.version_id
+                """,
+                (alias.id, alias.model_id, alias.name, alias.version_id),
+            )
+            self._connection.commit()
+
+    def load_model_alias(self, alias_id: str) -> ModelAlias:
+        row = self._connection.execute(
+            """
+            SELECT id, model_id, name, version_id
+            FROM model_aliases
+            WHERE id = ?
+            """,
+            (alias_id,),
+        ).fetchone()
+
+        if row is None:
+            raise KeyError(f"Model alias of id '{alias_id}' not found.")
+
+        return ModelAlias(
+            id=row["id"],
+            model_id=row["model_id"],
+            name=row["name"],
+            version_id=row["version_id"],
+        )
+
+    def load_model_alias_by_name(self, model_name: str, alias_name: str) -> ModelAlias:
+        row = self._connection.execute(
+            """
+            SELECT a.id, a.model_id, a.name, a.version_id
+            FROM model_aliases AS a
+            JOIN registered_models AS m ON a.model_id = m.id
+            WHERE m.name = ? and a.name = ?
+            """,
+            (model_name, alias_name),
+        ).fetchone()
+
+        if row is None:
+            raise KeyError(f"Alias '{alias_name}' not found for model '{model_name}'.")
+
+        return ModelAlias(
+            id=row["id"],
+            model_id=row["model_id"],
+            name=row["name"],
+            version_id=row["version_id"],
         )
