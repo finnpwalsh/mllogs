@@ -24,7 +24,6 @@ def run(store):
     store.save_run(run)
     return run
 
-
 @pytest.fixture()
 def artifact_ref(store, run):
     ref = ArtifactRef.create(
