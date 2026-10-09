@@ -1,6 +1,7 @@
 import pytest
 
 from mllogs.storage.db import SQLiteStore
+from mllogs.storage.artifacts import LocalArtifactStore
 from mllogs.model.registry import ModelRegistry
 from mllogs.artifact import ArtifactRef
 from mllogs.run import Run
@@ -10,30 +11,34 @@ from mllogs.run import Run
 # ----- FIXTURES -----
 # ====================
 
-@pytest.fixture()
-def store(tmp_path):
+@pytest.fixture
+def db_store(tmp_path):
     return SQLiteStore(tmp_path / "mllogs.db")
 
-@pytest.fixture()
-def registry(store):
-    return ModelRegistry(store)
+@pytest.fixture
+def artifact_store(tmp_path):
+    return LocalArtifactStore(tmp_path)
 
-@pytest.fixture()
-def run(store):
+@pytest.fixture
+def registry(db_store, artifact_store):
+    return ModelRegistry(db_store, artifact_store)
+
+@pytest.fixture
+def run(db_store):
     run = Run.create()
-    store.save_run(run)
+    db_store.save_run(run)
     return run
 
-@pytest.fixture()
-def artifact_ref(store, run):
+@pytest.fixture
+def artifact_ref(db_store, run):
     ref = ArtifactRef.create(
         run_id=run.id,
         name="model",
         format="joblib",
     )
-    store.save_artifact_ref(ref)
+    db_store.save_artifact_ref(ref)
     return ref
-
+    
 
 # ============================
 # ----- REGISTERED MODEL -----
@@ -100,8 +105,8 @@ def test_get_latest_version(registry, artifact_ref):
 
     assert loaded == latest
 
-def test_create_version_auto_registers_model(version, registered_model, store):
-    model = store.load_registered_model_by_name(registered_model.name)
+def test_create_version_auto_registers_model(version, registered_model, db_store):
+    model = db_store.load_registered_model_by_name(registered_model.name)
 
     assert model.id == version.model_id
 

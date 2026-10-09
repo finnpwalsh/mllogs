@@ -31,7 +31,7 @@ class MLLogs:
             artifact_store=self._artifact_store,
         )
 
-        self.registry = ModelRegistry(self._db_store)
+        self.registry = ModelRegistry(self._db_store, self._artifact_store)
 
     # ===================
     # ----- HELPERS -----
