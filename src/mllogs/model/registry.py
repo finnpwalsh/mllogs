@@ -84,3 +84,8 @@ class ModelRegistry:
 
     def get_alias(self, model_name: str, alias_name: str) -> ModelAlias:
         return self._db_store.load_model_alias_by_name(model_name=model_name, alias_name=alias_name)
+
+    def get_version_by_alias(self, model_name: str, alias_name: str) -> ModelVersion:
+        alias = self.get_alias(model_name, alias_name)
+
+        return self._db_store.load_model_version(alias.version_id)

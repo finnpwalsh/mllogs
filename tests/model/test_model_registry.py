@@ -171,9 +171,32 @@ def test_set_alias_is_idempotent(registry, artifact_ref):
 
     assert first == second
 
+def test_get_version_by_alias(registry, artifact_ref):
+    version = registry.create_version("credit-risk", artifact_ref)
+    registry.set_alias(version, "champion")
+
+    loaded = registry.get_version_by_alias("credit-risk", "champion")
+
+    assert loaded == version
+
+def test_get_version_by_alias_after_reassignment(registry, artifact_ref):
+    first = registry.create_version("credit-risk", artifact_ref)
+    second = registry.create_version("credit-risk", artifact_ref)
+
+    registry.set_alias(first, "champion")
+    registry.set_alias(second, "champion")
+
+    loaded = registry.get_version_by_alias("credit-risk", "champion")
+
+    assert loaded == second
+
 
 # --- Errors ---
 
 def test_get_missing_alias_raises(registry):
     with pytest.raises(KeyError):
         registry.get_alias("credit-risk", "champion")
+
+def test_get_version_by_alias_missing_raises(registry):
+    with pytest.raises(KeyError):
+        registry.get_version_by_alias("credit-risk", "champion")
