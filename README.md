@@ -115,7 +115,7 @@ Artifacts are associated with individual runs and can be loaded via `mll.query.l
 
 **Note:** Only load Pickle or Joblib from trusted sources, since deserialization can execute arbitrary code.
 
-### Register models
+### Register and version models
 
 Register the best-performing model artifact as a versioned model artifact.
 
@@ -127,14 +127,37 @@ latest = mll.registry.get_latest_version("diabetes-ridge")
 
 `create_version` automatically registers the model if it does not already exist. Subsequent versions can reference new model artifacts without overwriting previous versions.
 
-Retrieve a specific model version:
+Retrieve the latest or a specific model version:
 
 ```python
+latest = mll.registry.get_latest_version("diabetes-ridge")
+
 version = mll.registry.get_version(
     model_name="diabetes-ridge",
     version=1,
 )
 ```
+
+### Assign model aliases
+
+Assign a stable alias such as `champion` to a model version.
+
+```python
+mll.registry.set_alias(version, "champion")
+```
+
+Aliases can be reassinged as new model versions are created, allowing application code to refer to a role such as `champion` instead of a fixed number.
+
+Retrieve an alias or resolve it to its associated model version:
+
+```python
+alias = mll.registry.get_alias("diabetes-ridge", "champion")
+
+champion = mll.registry.get_version_by_alias("diabetes-ridge", "champion")
+```
+
+Aliases are scoped to individual registered models, so different models can independently use aliases such as `champion`, `staging`, or `candidate`.
+
 
 ## Features
 
@@ -145,6 +168,7 @@ version = mll.registry.get_version(
 - Save and load artifacts using local file storage
 - Query experiments, runs, and logged data
 - Register models and create versioned references to persisted model artifacts
+- Assign aliases to model versions and reassign them as models are promoted
 
 ## Development
 
