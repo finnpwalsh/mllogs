@@ -2,8 +2,6 @@ import pytest
 
 from mllogs import MLLogs
 from mllogs.run import RunStatus
-from mllogs.storage.db import SQLiteStore
-from mllogs.storage.artifacts import LocalArtifactStore
 
 
 # =================
@@ -12,9 +10,7 @@ from mllogs.storage.artifacts import LocalArtifactStore
 
 @pytest.fixture
 def mll(tmp_path):
-    db_store = SQLiteStore(tmp_path / "mllogs.db")
-    artifact_store = LocalArtifactStore(tmp_path / ".mllogs")
-    return MLLogs(db_store, artifact_store)
+    return MLLogs(tmp_path)
 
 
 # ================
