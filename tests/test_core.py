@@ -143,19 +143,20 @@ def test_tag_round_trip(mll):
 
 # ===== ARTIFACTS =====
 
-def test_artifact_round_trip(mll):
+@pytest.fixture
+def artifact_ref(mll):
     mll.start_run()
-    run_id = mll._active_run.id
 
     obj = {"alpha": 0.01}
 
-    mll.save_artifact(
+    return mll.save_artifact(
         name="model",
         obj=obj,
-        format="joblib",
+        format="joblib"
     )
 
-    assert mll.query.load_artifact(run_id, "model") == obj
+def test_artifact_round_trip(mll, artifact_ref):
+    assert mll.query.load_artifact(artifact_ref.run_id, artifact_ref.name) == {"alpha": 0.01}
 
 
 # ==========================

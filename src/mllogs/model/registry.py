@@ -1,5 +1,5 @@
 from mllogs.storage.db import DBStore
-from .models import RegisteredModel, ModelVersion
+from .models import RegisteredModel, ModelVersion, ModelAlias
 from mllogs.artifact import ArtifactRef
 
 
@@ -21,6 +21,7 @@ class ModelRegistry:
     # ====================
 
     # --- Registered Model ---
+
     def register_model(self, name: str) -> RegisteredModel:
         try:
             return self._get_registered_model(name)
@@ -29,7 +30,9 @@ class ModelRegistry:
             self._db_store.save_registered_model(model)
             return model
 
+
     # --- Model Version ---
+
     def create_version(self, model_name: str, artifact_ref: ArtifactRef) -> ModelVersion:
         registered_model = self.register_model(model_name)
 
@@ -59,3 +62,30 @@ class ModelRegistry:
     def get_latest_version(self, model_name: str) -> ModelVersion:
         model = self._get_registered_model(model_name)
         return self._db_store.load_latest_model_version(model.id)
+
+    # --- Model Alias ---
+
+    def set_alias(self, model_version: ModelVersion, alias_name: str) -> ModelAlias:
+        model = self._db_store.load_registered_model(model_version.model_id)
+
+        try:
+            alias = self.get_alias(model.name, alias_name)
+            alias.version_id = model_version.id
+        except KeyError:
+            alias = ModelAlias.create(
+                model_version.model_id,
+                name=alias_name,
+                version_id=model_version.id,
+            )
+
+        self._db_store.save_model_alias(alias)
+
+        return alias
+
+    def get_alias(self, model_name: str, alias_name: str) -> ModelAlias:
+        return self._db_store.load_model_alias_by_name(model_name=model_name, alias_name=alias_name)
+
+    def get_version_by_alias(self, model_name: str, alias_name: str) -> ModelVersion:
+        alias = self.get_alias(model_name, alias_name)
+
+        return self._db_store.load_model_version(alias.version_id)

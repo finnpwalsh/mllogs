@@ -4,7 +4,7 @@ from mllogs.artifact import ArtifactRef
 from mllogs.experiment import Experiment
 from mllogs.run import Run
 from mllogs.storage.db import SQLiteStore
-from mllogs.model.models import RegisteredModel, ModelVersion
+from mllogs.model.models import RegisteredModel, ModelVersion, ModelAlias
 
 
 # ================
@@ -22,6 +22,13 @@ def store(request, tmp_path):
     store_class = request.param
     return store_class(tmp_path / "mllogs.db")
 
+
+# ========================
+# --- DBStore Contract ---
+# ========================
+
+# ===== EXPERIMENTS =====
+
 @pytest.fixture
 def experiment(store):
     experiment = Experiment.create("ridge-finder")
@@ -38,34 +45,6 @@ def experiments(store):
         store.save_experiment(experiment)
 
     return experiments
-
-@pytest.fixture
-def run():
-    return Run.create()
-
-@pytest.fixture
-def runs():
-    return [Run.create() for _ in range(3)]
-
-@pytest.fixture
-def runs_with_experiment_id(experiment):
-    return [Run.create(experiment.id) for _ in range(3)]
-
-
-@pytest.fixture
-def artifact_ref(run):
-    return ArtifactRef.create(
-        run_id=run.id,
-        name="model",
-        format="joblib",
-    )
-
-
-# ========================
-# --- DBStore Contract ---
-# ========================
-
-# ===== EXPERIMENTS =====
 
 def test_experiment_round_trip(store, experiment):
     assert store.load_experiment(experiment.id) == experiment
@@ -93,8 +72,35 @@ def test_load_experiments(store, experiments):
 
 # ===== RUNS =====
 
-def test_save_and_load_run(store, run):
+@pytest.fixture
+def run(store):
+    run = Run.create()
+
     store.save_run(run)
+    return run
+    
+@pytest.fixture
+def runs(store):
+    runs = []
+    for _ in range(3):
+        run = Run.create()
+        store.save_run(run)
+        runs.append(run)
+    
+    return runs
+
+@pytest.fixture
+def runs_with_experiment_id(store, experiment):
+    runs = []
+
+    for _ in range(3):
+        run = Run.create(experiment.id)
+        store.save_run(run)
+        runs.append(run)
+
+    return runs
+
+def test_run_round_trip(store, run):
     assert store.load_run(run.id) == run
 
 def test_load_missing_run_raises_error(store):
@@ -102,7 +108,6 @@ def test_load_missing_run_raises_error(store):
         store.load_run("missing")
 
 def test_delete_run(store, run):
-    store.save_run(run)
     store.delete_run(run.id)
 
     with pytest.raises(KeyError):
@@ -113,17 +118,10 @@ def test_delete_missing_run_raises_error(store):
         store.delete_run("missing")
 
 def test_save_and_load_runs(store, runs):
-    for run in runs:
-        store.save_run(run)
-
     assert store.load_runs() == list(reversed(runs))
 
-def test_save_and_load_runs_with_experiment_id(store, experiment, run, runs_with_experiment_id):
-    store.save_run(run)
-    
-    for run in runs_with_experiment_id:
-        store.save_run(run)
-
+def test_save_and_load_runs_with_experiment_id(store, experiment, runs_with_experiment_id):
+    store.save_run(Run.create())
     assert store.load_runs(experiment.id) == list(reversed(runs_with_experiment_id))
 
 
@@ -140,16 +138,12 @@ def test_save_and_load_runs_with_experiment_id(store, experiment, run, runs_with
 )
 
 def test_param_round_trip(store, run, key, value):
-    store.save_run(run)
     store.save_param(run.id, key, value)
     params = store.load_params(run.id)
     assert params[key] == value
 
-
 def test_load_params_empty(store, run):
-    store.save_run(run)
     assert store.load_params(run.id) == {}
-
 
 def test_load_params_missing_run_raises_error(store):
     with pytest.raises(KeyError):
@@ -159,16 +153,11 @@ def test_load_params_missing_run_raises_error(store):
 # ===== METRICS =====
 
 def test_metric_round_trip(store, run):
-    store.save_run(run)
     store.save_metric(run.id, "accuracy", 0.95)
-
     assert store.load_metrics(run.id) == {"accuracy": 0.95}
 
-
 def test_load_metrics_empty(store, run):
-    store.save_run(run)
     assert store.load_metrics(run.id) == {}
-
 
 def test_load_metrics_missing_run_raises_error(store):
     with pytest.raises(KeyError):
@@ -178,16 +167,11 @@ def test_load_metrics_missing_run_raises_error(store):
 # ===== TAGS =====
 
 def test_tag_round_trip(store, run):
-    store.save_run(run)
     store.save_tag(run.id, "model", "linear")
-
     assert store.load_tags(run.id) == {"model": "linear"}
 
-
 def test_load_tags_empty(store, run):
-    store.save_run(run)
     assert store.load_tags(run.id) == {}
-
 
 def test_load_tags_missing_run_raises_error(store):
     with pytest.raises(KeyError):
@@ -196,15 +180,22 @@ def test_load_tags_missing_run_raises_error(store):
 
 # ===== ARTIFACT REFS =====
 
-def test_artifact_ref_round_trip(store, run, artifact_ref):
-    store.save_run(run)
-    store.save_artifact_ref(artifact_ref)
-    
+@pytest.fixture
+def artifact_ref(store, run):
+    ref = ArtifactRef.create(
+        run_id=run.id,
+        name="model",
+        format="joblib",
+    )
+
+    store.save_artifact_ref(ref)
+    return ref
+
+def test_artifact_ref_round_trip(store, artifact_ref):
     assert store.load_artifact_ref(artifact_ref.id) == artifact_ref
     assert store.load_artifact_ref_by_name(artifact_ref.run_id, artifact_ref.name) == artifact_ref
 
 def test_load_artifact_refs_empty(store, run):
-    store.save_run(run)
     assert store.load_artifact_refs(run.id) == []
 
 def test_load_artifact_refs_missing_run_raises_error(store):
@@ -212,65 +203,70 @@ def test_load_artifact_refs_missing_run_raises_error(store):
         store.load_artifact_refs("missing")
 
 
-# ===== MODELS =====
+# ===== REGISTERED MODEL =====
 
 @pytest.fixture
-def registered_model():
-    return RegisteredModel.create(name="linear_regression")
+def registered_model(store):
+    model = RegisteredModel.create(name="linear_regression")
+
+    store.save_registered_model(model)
+    return model
+
+def test_registered_model_round_trip(store, registered_model):
+    assert store.load_registered_model(registered_model.id) == registered_model
+    assert store.load_registered_model_by_name(registered_model.name) == registered_model
+
+
+# ===== MODEL VERSION =====
 
 @pytest.fixture
-def model_version(registered_model, artifact_ref):
-    return ModelVersion.create(
+def model_version(store, registered_model, artifact_ref):
+    version = ModelVersion.create(
         model_id=registered_model.id,
         version=1,
         artifact_id=artifact_ref.id,
     )
 
+    store.save_model_version(version)
+    return version
+
 @pytest.fixture
-def model_versions(registered_model, artifact_ref):
-    return [
-        ModelVersion.create(
+def model_versions(store, registered_model, artifact_ref):
+    versions = []
+    for version in [1, 2, 3]:
+        v = ModelVersion.create(
             model_id=registered_model.id,
             version=version,
             artifact_id=artifact_ref.id,
         )
-        for version in [1, 2, 3]
-    ]
+        store.save_model_version(v)
+        versions.append(v)
 
-def test_registered_model_round_trip(store, registered_model):
-    store.save_registered_model(registered_model)
-    assert store.load_registered_model(registered_model.id) == registered_model
-    assert store.load_registered_model_by_name(registered_model.name) == registered_model
+    return versions
 
-def test_model_version_round_trip(
-    store, 
-    run,
-    artifact_ref,
-    registered_model,
-    model_version,
-
-):
-    store.save_run(run)
-    store.save_artifact_ref(artifact_ref)
-    store.save_registered_model(registered_model)
-    store.save_model_version(model_version)
-
+def test_model_version_round_trip(store, model_version):
     assert store.load_model_version(model_version.id) == model_version
     assert store.load_model_version_by_model(model_version.model_id, model_version.version) == model_version
 
-def test_load_model_versions(
-    store,
-    run,
-    artifact_ref,
-    registered_model,
-    model_versions,
-):
-    store.save_run(run)
-    store.save_artifact_ref(artifact_ref)
-    store.save_registered_model(registered_model)
-
-    for model_version in model_versions:
-        store.save_model_version(model_version)
-
+def test_model_versions_round_trip(store, registered_model, model_versions):
     assert store.load_model_versions(registered_model.id) == model_versions
     assert store.load_latest_model_version(registered_model.id).version == 3
+
+
+# ===== MODEL ALIAS =====
+
+@pytest.fixture
+def model_alias(store, model_version):
+    alias = ModelAlias.create(
+        model_id=model_version.model_id,
+        name="champion",
+        version_id=model_version.id,
+    )
+    
+    store.save_model_alias(alias)
+    
+    return alias
+
+def test_model_alias_round_trip(store, registered_model, model_alias):
+    assert store.load_model_alias(model_alias.id) == model_alias
+    assert store.load_model_alias_by_name(registered_model.name, model_alias.name) == model_alias
