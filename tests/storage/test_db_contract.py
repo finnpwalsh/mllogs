@@ -267,5 +267,6 @@ def model_alias(store, model_version):
     
     return alias
 
-def test_model_alias_round_trip(store, model_alias):
+def test_model_alias_round_trip(store, registered_model, model_alias):
     assert store.load_model_alias(model_alias.id) == model_alias
+    assert store.load_model_alias_by_name(registered_model.name, model_alias.name) == model_alias
