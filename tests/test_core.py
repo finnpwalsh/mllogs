@@ -2,8 +2,6 @@ import pytest
 
 from mllogs import MLLogs
 from mllogs.run import RunStatus
-from mllogs.storage.db import SQLiteStore
-from mllogs.storage.artifacts import LocalArtifactStore
 
 
 # =================
@@ -12,9 +10,7 @@ from mllogs.storage.artifacts import LocalArtifactStore
 
 @pytest.fixture
 def mll(tmp_path):
-    db_store = SQLiteStore(tmp_path / "mllogs.db")
-    artifact_store = LocalArtifactStore(tmp_path / ".mllogs")
-    return MLLogs(db_store, artifact_store)
+    return MLLogs(tmp_path)
 
 
 # ================
@@ -182,3 +178,46 @@ def test_ops_requiring_active_run(mll):
 
     with pytest.raises(RuntimeError):
         mll.fail_run()
+
+
+# ======================
+# ----- Load Model -----
+# ======================
+
+@pytest.fixture
+def model_versions(mll):
+    mll.create_experiment("test-experiment")
+    mll.start_run("test-experiment")
+
+    versions = []
+
+    for alpha in [0.1, 1.0, 10]:
+        model = {"alpha": alpha}
+
+        artifact_ref = mll.save_artifact(f"model-{alpha}", model, "joblib")
+        
+        version = mll.registry.create_version("test-model", artifact_ref)
+        versions.append(version)
+
+    mll.complete_run()
+    return versions
+
+def test_load_model_latest(mll, model_versions):
+    assert mll.registry.load_model("test-model") == {"alpha": 10.0}
+
+def test_load_model_by_version(mll, model_versions):
+    assert mll.registry.load_model("test-model", version=2) == {"alpha": 1.0}
+
+def test_load_model_by_alias(mll, model_versions):
+    mll.registry.set_alias(model_versions[1], "champion")
+
+    assert mll.registry.load_model("test-model", alias="champion") == {"alpha": 1.0}
+
+
+def test_load_model_version_and_alias(mll):
+    with pytest.raises(ValueError):
+        mll.registry.load_model(
+            "test-model",
+            version=1,
+            alias="champion",
+        )

@@ -1,4 +1,5 @@
 from datetime import datetime, UTC
+from pathlib import Path
 from typing import Any
 
 from .artifact import ArtifactRef
@@ -6,8 +7,8 @@ from .query import Query
 from .experiment import Experiment
 from .run import Run, RunStatus
 from .serializers import get_serializer
-from .storage.artifacts import ArtifactStore, LocalArtifactStore
-from .storage.db import DBStore, SQLiteStore
+from .storage.artifacts import LocalArtifactStore
+from .storage.db import SQLiteStore
 from .types import ParamValue
 from .model.registry import ModelRegistry
 
@@ -17,13 +18,11 @@ class MLLogs:
     # ----- INITIALIZE -----
     # ======================
 
-    def __init__(
-        self,
-        db_store: DBStore | None = None,
-        artifact_store: ArtifactStore | None = None
-    ) -> None:
-        self._db_store = db_store if db_store is not None else SQLiteStore()
-        self._artifact_store = artifact_store if artifact_store is not None else LocalArtifactStore()
+    def __init__(self, storage_dir: str | Path = ".mllogs") -> None:
+        root = Path(storage_dir)
+
+        self._db_store = SQLiteStore(root / "mllogs.db")
+        self._artifact_store = LocalArtifactStore(root)
 
         self._active_run: Run | None = None
 
@@ -32,7 +31,7 @@ class MLLogs:
             artifact_store=self._artifact_store,
         )
 
-        self.registry = ModelRegistry(self._db_store)
+        self.registry = ModelRegistry(self._db_store, self._artifact_store)
 
     # ===================
     # ----- HELPERS -----

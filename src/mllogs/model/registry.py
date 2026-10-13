@@ -1,11 +1,20 @@
+from typing import Any
+
 from mllogs.storage.db import DBStore
+from mllogs.storage.artifacts import ArtifactStore
 from .models import RegisteredModel, ModelVersion, ModelAlias
+from mllogs.serializers import get_serializer
 from mllogs.artifact import ArtifactRef
 
 
 class ModelRegistry:
-    def __init__(self, db_store: DBStore):
+    def __init__(
+        self,
+        db_store: DBStore,
+        artifact_store: ArtifactStore,
+    ) -> None:
         self._db_store = db_store
+        self._artifact_store = artifact_store
     
     
     # ===================
@@ -89,3 +98,33 @@ class ModelRegistry:
         alias = self.get_alias(model_name, alias_name)
 
         return self._db_store.load_model_version(alias.version_id)
+
+    def load_model(
+        self,
+        model_name: str,
+        *,
+        version: int | None = None,
+        alias: str | None = None,
+    ) -> Any:
+        if version is not None and alias is not None:
+            raise ValueError("Specify either 'version' or 'alias', not both.")
+        
+        # check model is registered
+        model = self._db_store.load_registered_model_by_name(model_name)
+
+        if version is not None:
+            model_version = self._db_store.load_model_version_by_model(model.id, version)
+
+        elif alias is not None:
+            version_id = self._db_store.load_model_alias_by_name(model_name, alias).version_id
+            model_version = self._db_store.load_model_version(version_id)
+
+        else:
+            model_version = self._db_store.load_latest_model_version(model.id)
+
+        artifact_ref = self._db_store.load_artifact_ref(model_version.artifact_id)
+        
+        data = self._artifact_store.load(artifact_ref.uri)
+        serializer = get_serializer(artifact_ref.format)
+
+        return serializer.deserialize(data)
