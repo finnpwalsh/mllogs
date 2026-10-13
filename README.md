@@ -2,11 +2,29 @@
 
 Local experiment tracking and model registry for machine learning.
 
+
 ## Why `mllogs`?
 
 `mllogs` is built for developers who want structured experiment tracking without running a separate tracking server or external service. It provides a simple local workflow for tracking experiments, runs, parameters, metrics, artifacts, and model versions using SQLite and the filesystem.
 
 Use it when your training code has outgrown ad hoc dictionaries, folders, and filenames, but you do not need the infrastructure of a larger ML platform.
+
+
+## Contents
+
+- [Installation](#installation)
+- [Quickstart](#quickstart)
+- [Usage](#usage) 
+  - [Query experiments and runs](#query-experiments-and-runs)
+  - [Load saved artifacts](#load-saved-artifacts)
+  - [Register and version models](#register-and-version-models)
+  - [Assign model aliases](#assign-model-aliases)
+  - [Load registered models](#load-registered-models)
+- [Configure local storage](#configure-local-storage)
+- [Features](#features)
+- [Development](#development)
+- [License](#license)
+
 
 ## Installation
 
@@ -14,11 +32,10 @@ Use it when your training code has outgrown ad hoc dictionaries, folders, and fi
 pip install mllogs
 ```
 
+
 ## Quickstart
 
-### Track an experiment
-
-Train several models with different hyperparameter configurations and track their results.
+Track multiple model configurations and compare their results.
 
 ```python
 from mllogs import MLLogs
@@ -65,6 +82,9 @@ for alpha in [0.1, 1.0, 10.0]:
 
 Each configuration creates a separate run within the same experiment, preserving its parameters, metrics, and trained model.
 
+
+## Usage
+
 ### Query experiments and runs
 
 Retrieve experiments and inspect previously recorded runs.
@@ -107,7 +127,7 @@ model = mll.query.load_artifact(run.id, "model")
 Specify the format when saving an artifact:
 
 ```python
-mll.save_artifact("predictions", predictions, "csv")
+mll.save_artifact("predictions", predictions, "npy")
 mll.save_artifact("model", model, "joblib")
 ```
 
@@ -117,12 +137,10 @@ Artifacts are associated with individual runs and can be loaded via `mll.query.l
 
 ### Register and version models
 
-Register the best-performing model artifact as a versioned model artifact.
+Register the best-performing model and create its first version.
 
 ```python
 mll.registry.create_version("diabetes-ridge", best_model_ref)
-
-latest = mll.registry.get_latest_version("diabetes-ridge")
 ```
 
 `create_version` automatically registers the model if it does not already exist. Subsequent versions can reference new model artifacts without overwriting previous versions.
@@ -158,6 +176,51 @@ champion = mll.registry.get_version_by_alias("diabetes-ridge", "champion")
 
 Aliases are scoped to individual registered models, so different models can independently use aliases such as `champion`, `staging`, or `candidate`.
 
+### Load registered models
+
+Load a registered model directly without manually retrieving its version or associated artifact.
+
+By default, `load_model()` loads the latest version:
+
+```python
+model = mll.registry.load_model("diabetes-ridge")
+```
+
+Load a specific version:
+
+```python
+model = mll.registry.load_model("diabetes-ridge", version=1)
+```
+
+Or load a model by its alias:
+
+```python
+model = mll.registry.load_model("diabetes-ridge", alias="champion")
+```
+
+`load_model()` resolves the requested model version, retrieves its associated artifact, and returns the deserialized Python object.
+
+The `version` and `alias` arguments are mutually exclusive. If neither is provided, the latest version is loaded.
+
+
+## Configure local storage
+
+By default, `mllogs` stores its SQLite database and artifacts in the `.mllogs` directory.
+
+Specify a custom storage directory when initializing `MLLogs`:
+
+```python
+mll = MLLogs(storage_dir="./experiments")
+```
+
+The database and artifacts will be stored together:
+
+```
+experiments/
+    mllogs.db
+    artifacts/
+```
+
 
 ## Features
 
@@ -165,10 +228,13 @@ Aliases are scoped to individual registered models, so different models can inde
 - Start, complete, and fail runs
 - Log parameters, metrics, and tags
 - Persist run metadata to a local SQLite database
-- Save and load artifacts using local file storage
+- Save and load artifacts in multiple formats using local file storage
 - Query experiments, runs, and logged data
 - Register models and create versioned references to persisted model artifacts
-- Assign aliases to model versions and reassign them as models are promoted
+- Assign and reassign aliases to model versions
+- Load registered models by latest version, specific version, or alias
+- Configure the local storage directory
+
 
 ## Development
 
@@ -183,6 +249,7 @@ Run the test suite:
 ```bash
 pytest
 ```
+
 
 ## License
 
