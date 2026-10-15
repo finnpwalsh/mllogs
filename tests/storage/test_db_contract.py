@@ -4,7 +4,6 @@ from mllogs.artifact import ArtifactRef
 from mllogs.experiment import Experiment
 from mllogs.run import Run
 from mllogs.storage.db import SQLiteStore
-from mllogs.model.models import RegisteredModel, ModelVersion, ModelAlias
 
 
 # ================
@@ -201,72 +200,3 @@ def test_load_artifact_refs_empty(store, run):
 def test_load_artifact_refs_missing_run_raises_error(store):
     with pytest.raises(KeyError):
         store.load_artifact_refs("missing")
-
-
-# ===== REGISTERED MODEL =====
-
-@pytest.fixture
-def registered_model(store):
-    model = RegisteredModel.create(name="linear_regression")
-
-    store.save_registered_model(model)
-    return model
-
-def test_registered_model_round_trip(store, registered_model):
-    assert store.load_registered_model(registered_model.id) == registered_model
-    assert store.load_registered_model_by_name(registered_model.name) == registered_model
-
-
-# ===== MODEL VERSION =====
-
-@pytest.fixture
-def model_version(store, registered_model, artifact_ref):
-    version = ModelVersion.create(
-        model_id=registered_model.id,
-        version=1,
-        artifact_id=artifact_ref.id,
-    )
-
-    store.save_model_version(version)
-    return version
-
-@pytest.fixture
-def model_versions(store, registered_model, artifact_ref):
-    versions = []
-    for version in [1, 2, 3]:
-        v = ModelVersion.create(
-            model_id=registered_model.id,
-            version=version,
-            artifact_id=artifact_ref.id,
-        )
-        store.save_model_version(v)
-        versions.append(v)
-
-    return versions
-
-def test_model_version_round_trip(store, model_version):
-    assert store.load_model_version(model_version.id) == model_version
-    assert store.load_model_version_by_model(model_version.model_id, model_version.version) == model_version
-
-def test_model_versions_round_trip(store, registered_model, model_versions):
-    assert store.load_model_versions(registered_model.id) == model_versions
-    assert store.load_latest_model_version(registered_model.id).version == 3
-
-
-# ===== MODEL ALIAS =====
-
-@pytest.fixture
-def model_alias(store, model_version):
-    alias = ModelAlias.create(
-        model_id=model_version.model_id,
-        name="champion",
-        version_id=model_version.id,
-    )
-    
-    store.save_model_alias(alias)
-    
-    return alias
-
-def test_model_alias_round_trip(store, registered_model, model_alias):
-    assert store.load_model_alias(model_alias.id) == model_alias
-    assert store.load_model_alias_by_name(registered_model.name, model_alias.name) == model_alias

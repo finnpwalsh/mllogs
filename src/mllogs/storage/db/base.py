@@ -4,7 +4,6 @@ from mllogs.experiment import Experiment
 from mllogs.run import Run
 from mllogs.types import ParamValue
 from mllogs.artifact import ArtifactRef
-from mllogs.model.models import RegisteredModel, ModelVersion, ModelAlias
 
 
 class DBStore(ABC):
@@ -85,49 +84,3 @@ class DBStore(ABC):
 
     @abstractmethod
     def load_artifact_ref_by_name(self, run_id: str, name: str) -> ArtifactRef: ...
-
-
-    # ==================
-    # ----- MODELS -----
-    # =================='
-
-    # --- Registered Model ---
-
-    @abstractmethod
-    def save_registered_model(self, model: RegisteredModel) -> None: ...
-
-    @abstractmethod
-    def load_registered_model(self, model_id: str) -> RegisteredModel: ...
-
-    @abstractmethod
-    def load_registered_model_by_name(self, name: str) -> RegisteredModel: ...
-
-
-    # --- Model Version ---
-
-    @abstractmethod
-    def save_model_version(self, model_version: ModelVersion) -> None: ...
-
-    @abstractmethod
-    def load_model_version(self, model_version_id: str) -> ModelVersion: ...
-
-    @abstractmethod
-    def load_model_version_by_model(self, model_id: str, version: int) -> ModelVersion: ...
-
-    @abstractmethod
-    def load_model_versions(self, model_id: str) -> list[ModelVersion]: ...
-
-    @abstractmethod
-    def load_latest_model_version(self, model_id: str) -> ModelVersion: ...
-
-
-    # --- Model Alias ---
-
-    @abstractmethod
-    def save_model_alias(self, alias: ModelAlias) -> None: ...
-
-    @abstractmethod
-    def load_model_alias(self, alias_id: str) -> ModelAlias: ...
-
-    @abstractmethod
-    def load_model_alias_by_name(self, model_name: str, alias_name: str) -> ModelAlias: ...
