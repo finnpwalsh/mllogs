@@ -87,7 +87,7 @@ class MLLogs:
     # ================
 
     @contextmanager
-    def run(self, experiment_name: str) -> Generator[str]:
+    def run(self, experiment_name: str) -> Generator[str, None, None]:
         if self._active_run_id is not None:
             raise RuntimeError("A run is already active.")
 
