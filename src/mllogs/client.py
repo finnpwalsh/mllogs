@@ -11,10 +11,10 @@ from .storage.db import Database
 from .storage.db.schema import experiments, runs, params, metrics, tags
 from .storage.files import LocalFileStore
 from .serializers import get_serializer
-from .query import Query, RunsQuery
+from .query import RunsQuery
 
 
-type ParamValue = str | int | float | bool | None
+ParamValue = str | int | float | bool | None
 
 
 class MLLogs:
