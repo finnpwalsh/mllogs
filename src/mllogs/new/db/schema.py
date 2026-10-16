@@ -3,6 +3,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    JSON,
     MetaData,
     String,
     Table,
@@ -48,7 +49,7 @@ params = Table(
         primary_key=True,
     ),
     Column("key", String, primary_key=True),
-    Column("value", String, nullable=False),
+    Column("value", JSON, nullable=False),
 )
 
 

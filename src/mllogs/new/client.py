@@ -8,8 +8,11 @@ import pandas as pd
 from sqlalchemy import insert, delete, select, update
 
 from .db import Database
-from .db.schema import experiments, runs
+from .db.schema import experiments, runs, params, metrics, tags
 from .query import Query
+
+
+ParamValue = str | int | float | bool | None
 
 
 class MLLogs:
@@ -39,6 +42,11 @@ class MLLogs:
     @staticmethod
     def _now() -> datetime:
         return datetime.now(UTC)
+
+    def _require_active_run(self) -> str:
+        if self._active_run_id is None:
+            raise RuntimeError("No active run.")
+        return self._active_run_id   
 
 
     # =======================
@@ -136,3 +144,43 @@ class MLLogs:
             )
 
         return Query(self._db, stmt)
+
+    # ========================
+    # ----- Run Metadata -----
+    # ========================
+
+    def log_param(self, key: str, value: ParamValue) -> None:
+        run_id = self._require_active_run()
+
+        with self._db.engine.begin() as conn:
+            conn.execute(
+                insert(params).values(
+                    run_id=run_id,
+                    key=key,
+                    value=value,
+                )
+            )
+
+    def log_metric(self, key: str, value: float) -> None:
+        run_id = self._require_active_run()
+
+        with self._db.engine.begin() as conn:
+            conn.execute(
+                insert(metrics).values(
+                    run_id=run_id,
+                    key=key,
+                    value=value,
+                )
+            )
+
+    def set_tag(self, key: str, value: str) -> None:
+        run_id = self._require_active_run()
+
+        with self._db.engine.begin() as conn:
+            conn.execute(
+                insert(tags).values(
+                    run_id=run_id,
+                    key=key,
+                    value=value,
+                )
+            )

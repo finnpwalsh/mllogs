@@ -1,6 +1,10 @@
 import pandas as pd
 import pytest
 
+from sqlalchemy import select
+
+from mllogs.new.db.schema import params, metrics, tags
+
 
 # =======================
 # ----- Experiments -----
@@ -104,3 +108,75 @@ def test_sequential_runs(mll):
     assert len(df) == 2
     assert set(df["status"]) == {"COMPLETE"}
     assert df["id"].nunique() == 2
+
+
+# ========================
+# ----- Run Metadata -----
+# ========================
+
+
+# --- Params ---
+
+@pytest.mark.parametrize(
+    "value",
+    [0.1, 100, "adam", True, None],
+)
+def test_log_param(mll, value):
+    mll.create_experiment("test")
+
+    with mll.run("test"):
+        mll.log_param("parameter", value)
+
+    with mll._db.engine.connect() as conn:
+        result = conn.execute(
+            select(params.c.value)
+        ).scalar_one()
+
+    assert result == value
+    assert type(result) is type(value)
+
+
+# --- Metrics ---
+
+def test_log_metric(mll):
+    mll.create_experiment("test")
+
+    with mll.run("test"):
+        mll.log_metric("accuracy", 0.95)
+
+    with mll._db.engine.connect() as conn:
+        result = conn.execute(
+            select(metrics.c.value)
+        ).scalar_one()
+
+    assert result == pytest.approx(0.95)
+
+
+# --- Tags ---
+
+def test_set_tag(mll):
+    mll.create_experiment("test")
+
+    with mll.run("test"):
+        mll.set_tag("dataset", "diabetes")
+
+    with mll._db.engine.connect() as conn:
+        result = conn.execute(
+            select(tags.c.value)
+        ).scalar_one()
+
+    assert result == "diabetes"
+
+
+# --- All ---
+
+def test_log_metadata_without_run(mll):
+    with pytest.raises(RuntimeError, match="No active run"):
+        mll.log_param("alpha", 0.1)
+
+    with pytest.raises(RuntimeError, match="No active run"):
+        mll.log_metric("accuracy", 0.95)
+
+    with pytest.raises(RuntimeError, match="No active run"):
+        mll.set_tag("dataset", "diabetes")
+
