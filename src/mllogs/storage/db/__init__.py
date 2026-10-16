@@ -1,7 +1,5 @@
-from .base import DBStore
-from .sqlite import SQLiteStore
+from .database import Database
 
 __all__ = [
-    "DBStore",
-    "SQLiteStore",
+    "Database",
 ]

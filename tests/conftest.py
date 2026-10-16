@@ -3,16 +3,16 @@ from datetime import datetime, UTC, timedelta
 import pytest
 from sqlalchemy import insert, select
 
-from mllogs.new.client import MLLogs
-from mllogs.new.storage.db import Database
-from mllogs.new.storage.db.schema import (
+from mllogs.client import MLLogs
+from mllogs.storage.db import Database
+from mllogs.storage.db.schema import (
     experiments,
     runs,
     params,
     metrics,
     tags,
 )
-from mllogs.new.query import Query, RunsQuery
+from mllogs.query import Query, RunsQuery
 
 
 # ==========================

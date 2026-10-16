@@ -1,6 +1,6 @@
 import pytest
 
-from mllogs.new.serializers import (
+from mllogs.serializers import (
     JoblibSerializer,
     PickleSerializer,
     get_serializer,

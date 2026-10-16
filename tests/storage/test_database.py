@@ -5,8 +5,8 @@ import pytest
 from sqlalchemy import inspect, insert, select
 from sqlalchemy.exc import IntegrityError
 
-from mllogs.new.storage.db import Database
-from mllogs.new.storage.db.schema import metadata, experiments, runs
+from mllogs.storage.db import Database
+from mllogs.storage.db.schema import metadata, experiments, runs
 
 
 # ==========================
