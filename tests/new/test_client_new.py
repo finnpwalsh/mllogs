@@ -3,7 +3,7 @@ import pytest
 
 from sqlalchemy import select
 
-from mllogs.new.storage.db.schema import params, metrics, tags
+from mllogs.new.storage.db.schema import runs, params, metrics, tags
 
 
 # =======================
@@ -180,3 +180,52 @@ def test_log_metadata_without_run(mll):
     with pytest.raises(RuntimeError, match="No active run"):
         mll.set_tag("dataset", "diabetes")
 
+
+# ========================
+# ----- Model Saving -----
+# ========================
+
+def test_model_round_trip(mll):
+    model = {"weights": [0.1, 0.2, 0.3]}
+
+    mll.create_experiment("test")
+
+    with mll.run("test") as run_id:
+        mll.save_model(model)
+
+    saved = mll.load_model(run_id)
+    assert model == saved
+
+    # Verify saved model
+    path = mll._files._root / f"{run_id}.joblib"
+    assert path.exists()
+
+
+def test_save_model_without_active_run(mll):
+    with pytest.raises(RuntimeError, match="No active run"):
+        mll.save_model({"weights": [1, 2, 3]})
+
+
+def test_save_model_twice(mll):
+    mll.create_experiment("test")
+
+    with mll.run("test"):
+        mll.save_model({"weights": [1, 2, 3]})
+
+        with pytest.raises(ValueError, match="already been saved"):
+            mll.save_model({"weights": [4, 5, 6]})
+
+
+def test_save_model_with_pickle(mll):
+    mll.create_experiment("test")
+
+    with mll.run("test") as run_id:
+        mll.save_model({"weights": [1, 2, 3]}, format="pkl")
+
+    with mll._db.engine.connect() as conn:
+        model_format = conn.execute(
+            select(runs.c.model_format)
+            .where(runs.c.id == run_id)
+        ).scalar_one()
+
+    assert model_format == "pkl"

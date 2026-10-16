@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.engine import Engine, make_url
+from sqlalchemy.engine import Engine, URL, make_url
 
 from .schema import metadata
 

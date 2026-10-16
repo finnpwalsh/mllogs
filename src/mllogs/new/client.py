@@ -9,6 +9,8 @@ from sqlalchemy import insert, delete, select, update
 
 from .storage.db import Database
 from .storage.db.schema import experiments, runs, params, metrics, tags
+from .storage.files import LocalFileStore
+from .serializers import get_serializer
 from .query import Query, RunsQuery
 
 
@@ -23,8 +25,10 @@ class MLLogs:
     def __init__(
         self,
         db_url: str = "sqlite:///.mllogs/mllogs.db",
+        file_url: str = ".mllogs/models",
     ) -> None:
         self._db = Database(db_url)
+        self._files = LocalFileStore(file_url)
         self._active_run_id: str | None = None
 
     def close(self) -> None:
@@ -83,7 +87,7 @@ class MLLogs:
     # ================
 
     @contextmanager
-    def run(self, experiment_name: str) -> Generator[None]:
+    def run(self, experiment_name: str) -> Generator[str]:
         if self._active_run_id is not None:
             raise RuntimeError("A run is already active.")
 
@@ -114,7 +118,7 @@ class MLLogs:
         self._active_run_id = run_id
 
         try:
-            yield
+            yield run_id
         except BaseException:
             status = "FAILED"
             raise
@@ -180,3 +184,59 @@ class MLLogs:
                     value=value,
                 )
             )
+
+
+    # ==================
+    # ----- Models -----
+    # ==================
+
+    def save_model(self, model: object, format: str = "joblib") -> None:
+        run_id = self._require_active_run()
+
+        # Check for existing model
+        with self._db.engine.connect() as conn:
+            existing_format = conn.execute(
+                select(runs.c.model_format)
+                .where(runs.c.id == run_id)
+            ).scalar_one()
+
+        if existing_format is not None:
+            raise ValueError("A model has already been saved for this run.")
+
+        # Serialize model
+        serializer = get_serializer(format)
+        data = serializer.serialize(model)
+
+        # Save file
+        path = f"{run_id}.{format}"
+        self._files.save(path, data)
+
+        # Update run metadata
+        try:
+            with self._db.engine.begin() as conn:
+                conn.execute(
+                    update(runs)
+                    .where(runs.c.id == run_id)
+                    .values(model_format=format)
+                )
+        except Exception:
+            self._files.delete(path)
+            raise
+
+
+    def load_model(self, run_id: str) -> object:
+        # Retrieve model format
+        with self._db.engine.connect() as conn:
+            format = conn.execute(
+                select(runs.c.model_format)
+                .where(runs.c.id == run_id)
+            ).scalar_one_or_none()
+
+        if format is None:
+            raise ValueError(f"No saved model found for run: {run_id}")
+
+        # Load and deserialize model
+        serializer = get_serializer(format)
+        data = self._files.load(f"{run_id}.{format}")
+
+        return serializer.deserialize(data)

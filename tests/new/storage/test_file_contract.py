@@ -17,7 +17,7 @@ def store(request, tmp_path) -> FileStore:
 def test_save(store, tmp_path):
     store.save("run-123/model.pkl", b"model-data")
 
-    path = tmp_path / "artifacts" / "run-123" / "model.pkl"
+    path = tmp_path / "run-123" / "model.pkl"
 
     assert path.exists()
     assert path.read_bytes() == b"model-data"
@@ -32,7 +32,7 @@ def test_delete(store, tmp_path):
     store.save("run-123/model.pkl", b"model-data")
     store.delete("run-123/model.pkl")
 
-    path = tmp_path / "artifacts" / "run-123" / "model.pkl"
+    path = tmp_path / "run-123" / "model.pkl"
 
     assert not path.exists()
 

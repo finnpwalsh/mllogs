@@ -28,7 +28,10 @@ def db(tmp_path):
 
 @pytest.fixture
 def mll(tmp_path):
-    client = MLLogs(f"sqlite:///{tmp_path / 'client.db'}")
+    client = MLLogs(
+        db_url=f"sqlite:///{tmp_path / 'client.db'}",
+        file_url=str(tmp_path / "models")
+    )
     yield client
     client.close()
 

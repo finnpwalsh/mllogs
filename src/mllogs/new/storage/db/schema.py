@@ -36,6 +36,7 @@ runs = Table(
     Column("started_at", DateTime(timezone=True), nullable=False),
     Column("status", String, nullable=False),
     Column("ended_at", DateTime(timezone=True), nullable=True),
+    Column("model_format", String, nullable=True)
 )
 
 
