@@ -1,11 +1,18 @@
 from datetime import datetime, UTC, timedelta
 
 import pytest
-from sqlalchemy import insert
+from sqlalchemy import insert, select
 
 from mllogs.new.client import MLLogs
 from mllogs.new.db import Database
-from mllogs.new.db.schema import experiments, runs
+from mllogs.new.db.schema import (
+    experiments,
+    runs,
+    params,
+    metrics,
+    tags,
+)
+from mllogs.new.query import Query, RunsQuery
 
 
 # ==========================
@@ -26,23 +33,43 @@ def mll(tmp_path):
     client.close()
 
 
-# =======================
-# ----- Sample Data -----
-# =======================
+# =====================
+# ----- Queries -----
+# =====================
+
+@pytest.fixture
+def query(db, sample_runs):
+    return Query(db, select(runs))
+
+
+@pytest.fixture
+def runs_query(db, sample_run_data):
+    return RunsQuery(db, select(runs))
+
+
+# ==========================
+# ----- Experiments -----
+# ==========================
 
 @pytest.fixture
 def experiment(db):
+    experiment_id = "exp-001"
+
     with db.engine.begin() as conn:
         conn.execute(
             insert(experiments).values(
-                id="exp-001",
+                id=experiment_id,
                 name="test",
                 created_at=datetime.now(UTC),
             )
         )
 
-    return "exp-001"
+    return experiment_id
 
+
+# =====================
+# ----- Runs -----
+# =====================
 
 @pytest.fixture
 def sample_runs(db, experiment):
@@ -74,3 +101,61 @@ def sample_runs(db, experiment):
         )
 
     return ["run-001", "run-002", "run-003"]
+
+
+# =========================
+# ----- Parameters -----
+# =========================
+
+@pytest.fixture
+def sample_params(db, sample_runs):
+    with db.engine.begin() as conn:
+        conn.execute(
+            insert(params),
+            [
+                {"run_id": "run-001", "key": "alpha", "value": 0.1},
+                {"run_id": "run-002", "key": "alpha", "value": 1.0},
+            ],
+        )
+
+
+# ======================
+# ----- Metrics -----
+# ======================
+
+@pytest.fixture
+def sample_metrics(db, sample_runs):
+    with db.engine.begin() as conn:
+        conn.execute(
+            insert(metrics),
+            [
+                {"run_id": "run-001", "key": "mse", "value": 0.45},
+                {"run_id": "run-002", "key": "mse", "value": 0.38},
+                {"run_id": "run-003", "key": "mse", "value": 0.42},
+            ],
+        )
+
+
+# ===================
+# ----- Tags -----
+# ===================
+
+@pytest.fixture
+def sample_tags(db, sample_runs):
+    with db.engine.begin() as conn:
+        conn.execute(
+            insert(tags).values(
+                run_id="run-001",
+                key="dataset",
+                value="diabetes",
+            )
+        )
+
+
+# ==============================
+# ----- Full Run Dataset -----
+# ==============================
+
+@pytest.fixture
+def sample_run_data(sample_params, sample_metrics, sample_tags):
+    pass

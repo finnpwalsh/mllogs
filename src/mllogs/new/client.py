@@ -9,10 +9,10 @@ from sqlalchemy import insert, delete, select, update
 
 from .db import Database
 from .db.schema import experiments, runs, params, metrics, tags
-from .query import Query
+from .query import Query, RunsQuery
 
 
-ParamValue = str | int | float | bool | None
+type ParamValue = str | int | float | bool | None
 
 
 class MLLogs:
@@ -46,7 +46,7 @@ class MLLogs:
     def _require_active_run(self) -> str:
         if self._active_run_id is None:
             raise RuntimeError("No active run.")
-        return self._active_run_id   
+        return self._active_run_id
 
 
     # =======================
@@ -131,16 +131,12 @@ class MLLogs:
             finally:
                 self._active_run_id = None
 
-    def runs(self, experiment_name: str | None = None) -> Query:
+    def runs(self, experiment_name: str | None = None) -> RunsQuery:
         stmt = select(runs)
 
         if experiment_name is not None:
-            stmt = (
-                stmt.join(
-                    experiments,
-                    runs.c.experiment_id == experiments.c.id,
-                )
-                .where(experiments.c.name == experiment_name)
+            stmt = stmt.join(experiments).where(
+                experiments.c.name == experiment_name
             )
 
         return Query(self._db, stmt)

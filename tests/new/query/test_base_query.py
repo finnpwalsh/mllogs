@@ -1,16 +1,5 @@
-
 import pandas as pd
 import pytest
-
-from sqlalchemy import select
-
-from mllogs.new.query import Query
-from mllogs.new.db.schema import runs
-
-
-@pytest.fixture
-def query(db, sample_runs):
-    return Query(db, select(runs))
 
 
 # =====================
@@ -21,6 +10,7 @@ def test_filter(query):
     df = query.filter("status", "COMPLETE").to_df()
 
     assert set(df["id"]) == {"run-001", "run-003"}
+
 
 def test_invalid_filter(query):
     with pytest.raises(ValueError):
@@ -40,6 +30,7 @@ def test_order_by_ascending(query):
         "run-003",
     ]
 
+
 def test_order_by_descending(query):
     df = query.order_by(
         "started_at",
@@ -51,6 +42,7 @@ def test_order_by_descending(query):
         "run-002",
         "run-001",
     ]
+
 
 def test_invalid_order_by(query):
     with pytest.raises(ValueError):
@@ -66,6 +58,7 @@ def test_limit(query):
 
     assert df["id"].tolist() == ["run-001", "run-002"]
 
+
 def test_invalid_limit(query):
     with pytest.raises(ValueError):
         query.limit(-1)
@@ -80,6 +73,8 @@ def test_to_df(query):
 
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 3
+    assert {"id", "status", "started_at"}.issubset(df.columns)
+
 
 def test_query_chaining(query):
     df = (
