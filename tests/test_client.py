@@ -229,3 +229,27 @@ def test_save_model_with_pickle(mll):
         ).scalar_one()
 
     assert model_format == "pkl"
+
+
+# ==========================
+# ----- Run Query API -----
+# ==========================
+
+def test_runs_query_by_metric(mll):
+    mll.create_experiment("test")
+
+    with mll.run("test"):
+        mll.log_metric("rmse", 0.42)
+
+    with mll.run("test"):
+        mll.log_metric("rmse", 0.31)
+
+    df = (
+        mll.runs("test")
+        .order_by("rmse")
+        .to_df()
+    )
+
+    assert df["metrics.rmse"].tolist() == pytest.approx(
+        [0.31, 0.42]
+    )

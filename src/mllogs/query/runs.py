@@ -35,3 +35,28 @@ class RunsQuery(Query):
                     )
 
         super().__init__(db, stmt)
+        self._columns = stmt.selected_columns
+
+    def _resolve_column(self, name: str):
+        # Try exact match first
+        try:
+            return super()._resolve_column(name)
+        except ValueError:
+            pass
+
+        # Try unqualified match
+        matches = [
+            col
+            for col in self._columns
+            if col.key.split(".")[-1] == name
+        ]
+
+        if len(matches) == 1:
+            return matches[0]
+
+        if len(matches) > 1:
+            raise ValueError(
+                f"Ambiguous column: {name}. Use a qualified name."
+            )
+
+        raise ValueError(f"Unknown column: {name}")

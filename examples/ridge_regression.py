@@ -44,6 +44,7 @@ for alpha in [0.01, 0.1, 1.0, 10.0]:
 results = (
     mll.runs("ridge-regression")
     .filter("status", "COMPLETE")
+    .order_by("rmse", descending=False)
     .to_df()
 )
 

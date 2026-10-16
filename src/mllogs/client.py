@@ -143,7 +143,7 @@ class MLLogs:
                 experiments.c.name == experiment_name
             )
 
-        return Query(self._db, stmt)
+        return RunsQuery(self._db, stmt)
 
     # ========================
     # ----- Run Metadata -----
