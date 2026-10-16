@@ -7,7 +7,7 @@ where = ["src"]
 
 [project]
 name = "mllogs"
-version = "0.10.0"
+version = "0.11.0"
 description = "Local experiment tracking and model registry for machine learning"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -16,10 +16,10 @@ authors = [
     { name = "Finn Walsh" }
 ]
 dependencies = [
+    "sqlalchemy",
     "pandas",
     "joblib",
-    "pyarrow",
-    "numpy",
+    "scikit-learn", # example
 ]
 
 [project.optional-dependencies]

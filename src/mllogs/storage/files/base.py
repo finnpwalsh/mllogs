@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class ArtifactStore(ABC):
+class FileStore(ABC):
     @abstractmethod
     def save(self, uri: str, data: bytes) -> None:
         ...
