@@ -7,8 +7,8 @@ import pandas as pd
 
 from sqlalchemy import insert, delete, select, update
 
-from .db import Database
-from .db.schema import experiments, runs, params, metrics, tags
+from .storage.db import Database
+from .storage.db.schema import experiments, runs, params, metrics, tags
 from .query import Query, RunsQuery
 
 

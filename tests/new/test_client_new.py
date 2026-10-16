@@ -3,7 +3,7 @@ import pytest
 
 from sqlalchemy import select
 
-from mllogs.new.db.schema import params, metrics, tags
+from mllogs.new.storage.db.schema import params, metrics, tags
 
 
 # =======================

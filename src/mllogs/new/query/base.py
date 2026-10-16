@@ -6,7 +6,7 @@ import pandas as pd
 from sqlalchemy import Select
 from sqlalchemy.sql.elements import ColumnElement
 
-from ..db import Database
+from ..storage.db import Database
 
 
 class Query(ABC):

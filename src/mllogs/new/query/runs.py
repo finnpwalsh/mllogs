@@ -1,8 +1,8 @@
 from sqlalchemy import Select, select
 
 from .base import Query
-from ..db import Database
-from ..db.schema import runs, params, metrics, tags
+from ..storage.db import Database
+from ..storage.db.schema import runs, params, metrics, tags
 
 
 class RunsQuery(Query):

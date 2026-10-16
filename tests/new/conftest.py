@@ -4,8 +4,8 @@ import pytest
 from sqlalchemy import insert, select
 
 from mllogs.new.client import MLLogs
-from mllogs.new.db import Database
-from mllogs.new.db.schema import (
+from mllogs.new.storage.db import Database
+from mllogs.new.storage.db.schema import (
     experiments,
     runs,
     params,
