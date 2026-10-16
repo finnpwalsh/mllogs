@@ -1,3 +1,4 @@
+from datetime import datetime, UTC
 
 import pytest
 
@@ -11,7 +12,6 @@ from mllogs.new.db.schema import metadata, experiments, runs
 # ==========================
 # ----- Initialization -----
 # ==========================
-# Database creation and configuration
 
 def test_create_tables(db):
     inspector = inspect(db.engine)
@@ -23,65 +23,41 @@ def test_create_tables(db):
 
 def test_custom_database_path(tmp_path):
     path = tmp_path / "nested" / "test.db"
-    db = Database(f"sqlite:///{path}")
+    database = Database(f"sqlite:///{path}")
 
     try:
         assert path.exists()
     finally:
-        db.close()
+        database.close()
 
 
 def test_in_memory_database():
-    db = Database("sqlite:///:memory:")
+    database = Database("sqlite:///:memory:")
 
     try:
-        inspector = inspect(db.engine)
+        inspector = inspect(database.engine)
+
         assert set(inspector.get_table_names()) == set(
             metadata.tables.keys()
         )
     finally:
-        db.close()
+        database.close()
 
 
 # ========================
 # ----- Transactions -----
 # ========================
-# Reading, committing, and rolling back
 
-def test_insert_and_select(db):
-    with db.engine.begin() as conn:
-        conn.execute(
-            insert(experiments).values(
-                id="exp-001",
-                name="test",
-                created_at="2026-10-15T12:00:00",
-            )
-        )
-
+def test_transaction_commit(db, experiment):
     with db.engine.connect() as conn:
         result = conn.execute(
             select(experiments).where(
-                experiments.c.id == "exp-001"
+                experiments.c.id == experiment
             )
         ).mappings().one()
 
+    assert result["id"] == experiment
     assert result["name"] == "test"
-
-
-def test_transaction_commit(db):
-    with db.engine.begin() as conn:
-        conn.execute(
-            insert(experiments).values(
-                id="exp-001",
-                name="test",
-                created_at="2026-10-15T12:00:00",
-            )
-        )
-
-    with db.engine.connect() as conn:
-        result = conn.execute(select(experiments)).mappings().all()
-
-    assert len(result) == 1
 
 
 def test_transaction_rollback(db):
@@ -91,13 +67,16 @@ def test_transaction_rollback(db):
                 insert(experiments).values(
                     id="exp-001",
                     name="test",
-                    created_at="2026-10-15T12:00:00",
+                    created_at=datetime.now(UTC),
                 )
             )
+
             raise RuntimeError("Simulated failure")
 
     with db.engine.connect() as conn:
-        result = conn.execute(select(experiments)).mappings().all()
+        result = conn.execute(
+            select(experiments)
+        ).mappings().all()
 
     assert result == []
 
@@ -105,25 +84,15 @@ def test_transaction_rollback(db):
 # =======================
 # ----- Constraints -----
 # =======================
-# Data integrity
 
-def test_unique_constraint(db):
-    with db.engine.begin() as conn:
-        conn.execute(
-            insert(experiments).values(
-                id="exp-001",
-                name="test",
-                created_at="2026-10-15T12:00:00",
-            )
-        )
-
+def test_unique_constraint(db, experiment):
     with pytest.raises(IntegrityError):
         with db.engine.begin() as conn:
             conn.execute(
                 insert(experiments).values(
                     id="exp-002",
                     name="test",
-                    created_at="2026-10-15T12:00:00",
+                    created_at=datetime.now(UTC),
                 )
             )
 
@@ -135,7 +104,7 @@ def test_foreign_key_constraint(db):
                 insert(runs).values(
                     id="run-001",
                     experiment_id="nonexistent",
-                    started_at="2026-10-15T12:00:00",
+                    started_at=datetime.now(UTC),
                     status="RUNNING",
                 )
             )

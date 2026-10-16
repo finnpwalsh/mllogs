@@ -1,6 +1,6 @@
-
 from sqlalchemy import (
     Column,
+    DateTime,
     Float,
     ForeignKey,
     MetaData,
@@ -18,7 +18,7 @@ experiments = Table(
     metadata,
     Column("id", String, primary_key=True),
     Column("name", String, nullable=False, unique=True),
-    Column("created_at", String, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
 )
 
 
@@ -32,9 +32,9 @@ runs = Table(
         ForeignKey("experiments.id", ondelete="SET NULL"),
         nullable=True,
     ),
-    Column("started_at", String, nullable=False),
+    Column("started_at", DateTime(timezone=True), nullable=False),
     Column("status", String, nullable=False),
-    Column("ended_at", String, nullable=True),
+    Column("ended_at", DateTime(timezone=True), nullable=True),
 )
 
 
