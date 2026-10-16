@@ -1,11 +1,7 @@
 import pytest
 
 from mllogs.new.serializers import (
-    CSVSerializer,
     JoblibSerializer,
-    JSONSerializer,
-    NumpySerializer,
-    ParquetSerializer,
     PickleSerializer,
     get_serializer,
     list_serializers,
@@ -17,10 +13,6 @@ from mllogs.new.serializers import (
     [
         ("pkl", PickleSerializer),
         ("joblib", JoblibSerializer),
-        ("json", JSONSerializer),
-        ("csv", CSVSerializer),
-        ("parquet", ParquetSerializer),
-        ("npy", NumpySerializer),
     ],
 )
 def test_get_serializer(format, serializer_class):
@@ -38,8 +30,4 @@ def test_list_serializers():
     assert set(list_serializers()) == {
         "pkl",
         "joblib",
-        "json",
-        "csv",
-        "parquet",
-        "npy",
     }

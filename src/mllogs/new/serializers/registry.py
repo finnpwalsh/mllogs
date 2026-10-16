@@ -1,19 +1,11 @@
 from .base import Serializer
-from .csv import CSVSerializer
 from .joblib import JoblibSerializer
-from .json import JSONSerializer
-from .parquet import ParquetSerializer
 from .pickle import PickleSerializer
-from .numpy import NumpySerializer
 
 
 _SERIALIZERS: dict[str, Serializer] = {
-    "csv": CSVSerializer(),
     "joblib": JoblibSerializer(),
-    "json": JSONSerializer(),
-    "parquet": ParquetSerializer(),
     "pkl": PickleSerializer(),
-    "npy": NumpySerializer(),
 }
 
 
